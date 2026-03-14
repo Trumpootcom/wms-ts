@@ -1,4 +1,16 @@
+import { useState } from "react";
+
 function App() {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+    setImageUrl(url);
+  }
+
   return (
     <div
       style={{
@@ -13,10 +25,9 @@ function App() {
           background: "#1f2937",
           color: "white",
           padding: "16px 24px",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
         }}
       >
-        <h1 style={{ margin: 0, fontSize: "1.5rem" }}>VTT Slicer</h1>
+        <h1 style={{ margin: 0 }}>VTT Slicer</h1>
       </header>
 
       <main
@@ -27,6 +38,7 @@ function App() {
           padding: "16px",
         }}
       >
+        {/* Controls panel */}
         <aside
           style={{
             background: "white",
@@ -35,10 +47,20 @@ function App() {
             boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
           }}
         >
-          <h2 style={{ marginTop: 0 }}>Controls</h2>
-          <p>Upload, sizing, grid, and export controls will go here.</p>
+          <h2>Controls</h2>
+
+          <label>
+            Upload Map
+            <br />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+            />
+          </label>
         </aside>
 
+        {/* Preview panel */}
         <section
           style={{
             background: "white",
@@ -48,8 +70,20 @@ function App() {
             minHeight: "500px",
           }}
         >
-          <h2 style={{ marginTop: 0 }}>Preview</h2>
-          <p>Map preview and slice overlay will go here.</p>
+          <h2>Preview</h2>
+
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              style={{
+                maxWidth: "100%",
+                maxHeight: "600px",
+                border: "1px solid #ccc",
+              }}
+            />
+          ) : (
+            <p>No image loaded</p>
+          )}
         </section>
       </main>
     </div>
