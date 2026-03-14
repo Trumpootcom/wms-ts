@@ -1,15 +1,132 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+
+const MIN_SIZE_IN = 8;
+const MAX_SIZE_IN = 36;
+const DEFAULT_WIDTH_IN = 30;
+const DEFAULT_HEIGHT_IN = 20;
+const TILE_WIDTH_IN = 8;
+const TILE_HEIGHT_IN = 10;
+
+function clamp(value: number, min: number, max: number): number {
+  if (Number.isNaN(value)) return min;
+  return Math.min(Math.max(value, min), max);
+}
+
+function roundToTenth(value: number): number {
+  return Math.round(value * 10) / 10;
+}
 
 function App() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
+
+  const [printedWidthIn, setPrintedWidthIn] = useState<number>(DEFAULT_WIDTH_IN);
+  const [printedHeightIn, setPrintedHeightIn] = useState<number>(DEFAULT_HEIGHT_IN);
+  const [maintainAspectRatio, setMaintainAspectRatio] = useState<boolean>(false);
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const url = URL.createObjectURL(file);
-    setImageUrl(url);
+
+    const img = new Image();
+    img.onload = () => {
+      if (!img.width || !img.height) return;
+
+      const aspect = img.width / img.height;
+      setImageAspectRatio(aspect);
+      setImageUrl(url);
+
+      if (maintainAspectRatio) {
+        const adjustedHeight = clamp(
+          roundToTenth(printedWidthIn / aspect),
+          MIN_SIZE_IN,
+          MAX_SIZE_IN,
+        );
+        const adjustedWidth = clamp(
+          roundToTenth(adjustedHeight * aspect),
+          MIN_SIZE_IN,
+          MAX_SIZE_IN,
+        );
+
+        setPrintedHeightIn(adjustedHeight);
+        setPrintedWidthIn(adjustedWidth);
+      }
+    };
+    img.src = url;
   }
+
+  function updateWidth(nextWidthRaw: number) {
+    const nextWidth = clamp(roundToTenth(nextWidthRaw), MIN_SIZE_IN, MAX_SIZE_IN);
+
+    if (maintainAspectRatio && imageAspectRatio) {
+      let nextHeight = roundToTenth(nextWidth / imageAspectRatio);
+      nextHeight = clamp(nextHeight, MIN_SIZE_IN, MAX_SIZE_IN);
+
+      const adjustedWidth = clamp(
+        roundToTenth(nextHeight * imageAspectRatio),
+        MIN_SIZE_IN,
+        MAX_SIZE_IN,
+      );
+
+      setPrintedWidthIn(adjustedWidth);
+      setPrintedHeightIn(nextHeight);
+      return;
+    }
+
+    setPrintedWidthIn(nextWidth);
+  }
+
+  function updateHeight(nextHeightRaw: number) {
+    const nextHeight = clamp(roundToTenth(nextHeightRaw), MIN_SIZE_IN, MAX_SIZE_IN);
+
+    if (maintainAspectRatio && imageAspectRatio) {
+      let nextWidth = roundToTenth(nextHeight * imageAspectRatio);
+      nextWidth = clamp(nextWidth, MIN_SIZE_IN, MAX_SIZE_IN);
+
+      const adjustedHeight = clamp(
+        roundToTenth(nextWidth / imageAspectRatio),
+        MIN_SIZE_IN,
+        MAX_SIZE_IN,
+      );
+
+      setPrintedWidthIn(nextWidth);
+      setPrintedHeightIn(adjustedHeight);
+      return;
+    }
+
+    setPrintedHeightIn(nextHeight);
+  }
+
+  function handleAspectRatioToggle(e: React.ChangeEvent<HTMLInputElement>) {
+    const checked = e.target.checked;
+    setMaintainAspectRatio(checked);
+
+    if (checked && imageAspectRatio) {
+      let nextHeight = roundToTenth(printedWidthIn / imageAspectRatio);
+      nextHeight = clamp(nextHeight, MIN_SIZE_IN, MAX_SIZE_IN);
+
+      const adjustedWidth = clamp(
+        roundToTenth(nextHeight * imageAspectRatio),
+        MIN_SIZE_IN,
+        MAX_SIZE_IN,
+      );
+
+      setPrintedHeightIn(nextHeight);
+      setPrintedWidthIn(adjustedWidth);
+    }
+  }
+
+  const pageEstimate = useMemo(() => {
+    const cols = Math.ceil(printedWidthIn / TILE_WIDTH_IN);
+    const rows = Math.ceil(printedHeightIn / TILE_HEIGHT_IN);
+    return {
+      cols,
+      rows,
+      total: cols * rows,
+    };
+  }, [printedWidthIn, printedHeightIn]);
 
   return (
     <div
@@ -33,12 +150,11 @@ function App() {
       <main
         style={{
           display: "grid",
-          gridTemplateColumns: "320px 1fr",
+          gridTemplateColumns: "340px 1fr",
           gap: "16px",
           padding: "16px",
         }}
       >
-        {/* Controls panel */}
         <aside
           style={{
             background: "white",
@@ -47,20 +163,108 @@ function App() {
             boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
           }}
         >
-          <h2>Controls</h2>
+          <h2 style={{ marginTop: 0 }}>Controls</h2>
 
-          <label>
-            Upload Map
-            <br />
+          <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", fontWeight: 700, marginBottom: "8px" }}>
+              Upload Map
+            </label>
+            <input type="file" accept="image/*" onChange={handleFileUpload} />
+          </div>
+
+          <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", fontWeight: 700, marginBottom: "8px" }}>
+              Printed Width (in)
+            </label>
             <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileUpload}
+              type="number"
+              min={MIN_SIZE_IN}
+              max={MAX_SIZE_IN}
+              step={0.1}
+              value={printedWidthIn}
+              onChange={(e) => updateWidth(Number(e.target.value))}
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "8px",
+                marginBottom: "8px",
+              }}
             />
-          </label>
+            <input
+              type="range"
+              min={MIN_SIZE_IN}
+              max={MAX_SIZE_IN}
+              step={0.5}
+              value={printedWidthIn}
+              onChange={(e) => updateWidth(Number(e.target.value))}
+              style={{ width: "100%" }}
+            />
+          </div>
+
+          <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", fontWeight: 700, marginBottom: "8px" }}>
+              Printed Height (in)
+            </label>
+            <input
+              type="number"
+              min={MIN_SIZE_IN}
+              max={MAX_SIZE_IN}
+              step={0.1}
+              value={printedHeightIn}
+              onChange={(e) => updateHeight(Number(e.target.value))}
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "8px",
+                marginBottom: "8px",
+              }}
+            />
+            <input
+              type="range"
+              min={MIN_SIZE_IN}
+              max={MAX_SIZE_IN}
+              step={0.5}
+              value={printedHeightIn}
+              onChange={(e) => updateHeight(Number(e.target.value))}
+              style={{ width: "100%" }}
+            />
+          </div>
+
+          <div style={{ marginBottom: "20px" }}>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                opacity: imageAspectRatio ? 1 : 0.6,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={maintainAspectRatio}
+                disabled={!imageAspectRatio}
+                onChange={handleAspectRatioToggle}
+              />
+              Maintain aspect ratio
+            </label>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid #d1d5db",
+              borderRadius: "10px",
+              padding: "12px",
+              background: "#f9fafb",
+            }}
+          >
+            <div style={{ fontWeight: 700, marginBottom: "8px" }}>Page Estimate</div>
+            <div>
+              Estimated tiles: {pageEstimate.cols} × {pageEstimate.rows}
+            </div>
+            <div>Estimated pages: {pageEstimate.total}</div>
+          </div>
         </aside>
 
-        {/* Preview panel */}
         <section
           style={{
             background: "white",
@@ -70,11 +274,12 @@ function App() {
             minHeight: "500px",
           }}
         >
-          <h2>Preview</h2>
+          <h2 style={{ marginTop: 0 }}>Preview</h2>
 
           {imageUrl ? (
             <img
               src={imageUrl}
+              alt="Uploaded map preview"
               style={{
                 maxWidth: "100%",
                 maxHeight: "600px",
@@ -84,6 +289,10 @@ function App() {
           ) : (
             <p>No image loaded</p>
           )}
+
+          <div style={{ marginTop: "16px", color: "#4b5563" }}>
+            Printed size: {printedWidthIn}" × {printedHeightIn}"
+          </div>
         </section>
       </main>
     </div>
