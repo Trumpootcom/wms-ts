@@ -1,5 +1,8 @@
-import { jsPDF } from "jspdf";
 import { useMemo, useState } from "react";
+import { buildSliceEstimate, clamp, getPreviewStageSize, roundToTenth } from "./slicer/math";
+import { exportSlicedPdf } from "./slicer/pdf";
+import type { GridColor, GridMode, GridSize, SliceSize } from "./slicer/types";
+import { formatInches, formatPercent } from "./utils/format";
 
 const MIN_SIZE_IN = 8;
 const MAX_SIZE_IN = 36;
@@ -9,100 +12,11 @@ const PREVIEW_MAX_WIDTH_PX = 900;
 const PREVIEW_MAX_HEIGHT_PX = 620;
 const EXPORT_DPI = 150;
 
-function clamp(value: number, min: number, max: number): number {
-  if (Number.isNaN(value)) return min;
-  return Math.min(Math.max(value, min), max);
-}
-
-function roundToTenth(value: number): number {
-  return Math.round(value * 10) / 10;
-}
-
-function rowLabelFromIndex(index: number): string {
-  let n = index + 1;
-  let label = "";
-
-  while (n > 0) {
-    const rem = (n - 1) % 26;
-    label = String.fromCharCode(65 + rem) + label;
-    n = Math.floor((n - 1) / 26);
-  }
-
-  return label;
-}
-
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("Failed to load image for export."));
-    img.src = src;
-  });
-}
-
-function getPageMargins(sliceSize: SliceSize): { left: number; top: number } {
-  if (sliceSize === "8x10.5") {
-    return { left: 0.25, top: 0.25 };
-  }
-  return { left: 0.25, top: 0.5 };
-}
-
-function drawLineGrid(
-  ctx: CanvasRenderingContext2D,
-  tileWidthPx: number,
-  tileHeightPx: number,
-  tileXIn: number,
-  tileYIn: number,
-  tileWidthIn: number,
-  tileHeightIn: number,
-  gridSizeIn: number,
-  dpi: number,
-  strokeStyle: string,
-) {
-  ctx.save();
-  ctx.strokeStyle = strokeStyle;
-  ctx.lineWidth = 1;
-
-  const epsilon = 0.000001;
-
-  const startVertical = Math.ceil(tileXIn / gridSizeIn - epsilon) * gridSizeIn;
-  const endVertical = tileXIn + tileWidthIn + epsilon;
-
-  for (let inch = startVertical; inch <= endVertical; inch += gridSizeIn) {
-    const x = ((inch - tileXIn) / gridSizeIn) * (gridSizeIn * dpi);
-    if (x < 0 || x > tileWidthPx) continue;
-    const crispX = Math.round(x) + 0.5;
-    ctx.beginPath();
-    ctx.moveTo(crispX, 0);
-    ctx.lineTo(crispX, tileHeightPx);
-    ctx.stroke();
-  }
-
-  const startHorizontal = Math.ceil(tileYIn / gridSizeIn - epsilon) * gridSizeIn;
-  const endHorizontal = tileYIn + tileHeightIn + epsilon;
-
-  for (let inch = startHorizontal; inch <= endHorizontal; inch += gridSizeIn) {
-    const y = ((inch - tileYIn) / gridSizeIn) * (gridSizeIn * dpi);
-    if (y < 0 || y > tileHeightPx) continue;
-    const crispY = Math.round(y) + 0.5;
-    ctx.beginPath();
-    ctx.moveTo(0, crispY);
-    ctx.lineTo(tileWidthPx, crispY);
-    ctx.stroke();
-  }
-
-  ctx.restore();
-}
-
-
-type GridColor = "black" | "white";
-type GridMode = "none" | "line";
-type SliceSize = "8x10" | "8x10.5";
-type GridSize = 0.75 | 1 | 1.25 | 1.5;
-
 function App() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
+  const [sourcePixelWidth, setSourcePixelWidth] = useState<number | null>(null);
+  const [sourcePixelHeight, setSourcePixelHeight] = useState<number | null>(null);
 
   const [printedWidthIn, setPrintedWidthIn] = useState<number>(DEFAULT_WIDTH_IN);
   const [printedHeightIn, setPrintedHeightIn] = useState<number>(DEFAULT_HEIGHT_IN);
@@ -115,9 +29,6 @@ function App() {
 
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [exportMessage, setExportMessage] = useState<string>("");
-
-  const [sourcePixelWidth, setSourcePixelWidth] = useState<number | null>(null);
-  const [sourcePixelHeight, setSourcePixelHeight] = useState<number | null>(null);
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -153,16 +64,6 @@ function App() {
       }
     };
     img.src = url;
-  }
-
-  function formatInches(value: number): string {
-    const rounded = Math.round(value * 10) / 10;
-    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
-  }
-
-  function formatPercent(value: number): string {
-    const rounded = Math.round(value * 10) / 10;
-    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
   }
 
   function updateWidth(nextWidthRaw: number) {
@@ -226,66 +127,13 @@ function App() {
     }
   }
 
-  const tileConfig = useMemo(() => {
-    if (sliceSize === "8x10.5") {
-      return { widthIn: 8, heightIn: 10.5 };
-    }
-    return { widthIn: 8, heightIn: 10 };
-  }, [sliceSize]);
-
-  const sliceEstimate = useMemo(() => {
-    const cols = Math.ceil(printedWidthIn / tileConfig.widthIn);
-    const rows = Math.ceil(printedHeightIn / tileConfig.heightIn);
-
-    const tiles: Array<{
-      row: number;
-      col: number;
-      xIn: number;
-      yIn: number;
-      widthIn: number;
-      heightIn: number;
-      label: string;
-    }> = [];
-
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        const xIn = col * tileConfig.widthIn;
-        const yIn = row * tileConfig.heightIn;
-
-        const widthIn =
-          col === cols - 1
-            ? roundToTenth(printedWidthIn - col * tileConfig.widthIn)
-            : tileConfig.widthIn;
-
-        const heightIn =
-          row === rows - 1
-            ? roundToTenth(printedHeightIn - row * tileConfig.heightIn)
-            : tileConfig.heightIn;
-
-        tiles.push({
-          row,
-          col,
-          xIn,
-          yIn,
-          widthIn,
-          heightIn,
-          label: `${rowLabelFromIndex(row)}${col + 1}`,
-        });
-      }
-    }
-
-    return {
-      cols,
-      rows,
-      total: cols * rows,
-      tiles,
-    };
-  }, [printedWidthIn, printedHeightIn, tileConfig]);
+  const sliceEstimate = useMemo(
+    () => buildSliceEstimate(printedWidthIn, printedHeightIn, sliceSize),
+    [printedWidthIn, printedHeightIn, sliceSize],
+  );
 
   const previewGridLineColor =
     gridColor === "black" ? "rgba(0,0,0,0.65)" : "rgba(255,255,255,0.85)";
-
-  const exportGridLineColor = gridColor === "black" ? "#000000" : "#ffffff";
 
   const sliceLineColor =
     gridColor === "black" ? "rgba(220, 38, 38, 0.95)" : "rgba(239, 68, 68, 0.95)";
@@ -295,22 +143,16 @@ function App() {
 
   const labelTextColor = gridColor === "black" ? "#111827" : "#ffffff";
 
-  const previewStage = useMemo(() => {
-    const aspect = printedWidthIn / printedHeightIn;
-
-    let width = PREVIEW_MAX_WIDTH_PX;
-    let height = width / aspect;
-
-    if (height > PREVIEW_MAX_HEIGHT_PX) {
-      height = PREVIEW_MAX_HEIGHT_PX;
-      width = height * aspect;
-    }
-
-    return {
-      width: Math.round(width),
-      height: Math.round(height),
-    };
-  }, [printedWidthIn, printedHeightIn]);
+  const previewStage = useMemo(
+    () =>
+      getPreviewStageSize(
+        printedWidthIn,
+        printedHeightIn,
+        PREVIEW_MAX_WIDTH_PX,
+        PREVIEW_MAX_HEIGHT_PX,
+      ),
+    [printedWidthIn, printedHeightIn],
+  );
 
   const sourceSizeReport = useMemo(() => {
     if (!imageAspectRatio) return null;
@@ -320,8 +162,6 @@ function App() {
     let sourceWidthIn: number;
     let sourceHeightIn: number;
 
-    // Fit the source-aspect rectangle inside the printed rectangle.
-    // This guarantees one reported axis is 100% and the other is >= 100%.
     if (imageAspectRatio >= printedAspect) {
       sourceHeightIn = printedHeightIn;
       sourceWidthIn = printedHeightIn * imageAspectRatio;
@@ -351,93 +191,19 @@ function App() {
     setExportMessage("Preparing PDF...");
 
     try {
-      const sourceImage = await loadImage(imageUrl);
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "in",
-        format: "letter",
-        compress: true,
+      await exportSlicedPdf({
+        imageUrl,
+        printedWidthIn,
+        printedHeightIn,
+        sliceSize,
+        sliceEstimate,
+        gridMode,
+        gridColor,
+        gridSizeIn,
+        exportDpi: EXPORT_DPI,
+        onProgress: setExportMessage,
       });
 
-      const margins = getPageMargins(sliceSize);
-
-      for (let i = 0; i < sliceEstimate.tiles.length; i++) {
-        const tile = sliceEstimate.tiles[i];
-
-        setExportMessage(
-          `Rendering page ${i + 1} of ${sliceEstimate.tiles.length} (${tile.label})...`,
-        );
-
-        if (i > 0) {
-          pdf.addPage("letter", "portrait");
-        }
-
-        const tileWidthPx = Math.max(1, Math.round(tile.widthIn * EXPORT_DPI));
-        const tileHeightPx = Math.max(1, Math.round(tile.heightIn * EXPORT_DPI));
-
-        const canvas = document.createElement("canvas");
-        canvas.width = tileWidthPx;
-        canvas.height = tileHeightPx;
-
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          throw new Error("Could not create export canvas.");
-        }
-
-        const sx = (tile.xIn / printedWidthIn) * sourceImage.width;
-        const sy = (tile.yIn / printedHeightIn) * sourceImage.height;
-        const sw = (tile.widthIn / printedWidthIn) * sourceImage.width;
-        const sh = (tile.heightIn / printedHeightIn) * sourceImage.height;
-
-        ctx.drawImage(
-          sourceImage,
-          sx,
-          sy,
-          sw,
-          sh,
-          0,
-          0,
-          tileWidthPx,
-          tileHeightPx,
-        );
-
-        if (gridMode === "line") {
-          drawLineGrid(
-            ctx,
-            tileWidthPx,
-            tileHeightPx,
-            tile.xIn,
-            tile.yIn,
-            tile.widthIn,
-            tile.heightIn,
-            gridSizeIn,
-            EXPORT_DPI,
-            exportGridLineColor,
-          );
-        }
-
-        const imageDataUrl = canvas.toDataURL("image/jpeg", 0.92);
-
-        pdf.addImage(
-          imageDataUrl,
-          "JPEG",
-          margins.left,
-          margins.top,
-          tile.widthIn,
-          tile.heightIn,
-          undefined,
-          "FAST",
-        );
-
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(10);
-        pdf.setTextColor(60, 60, 60);
-        pdf.text(tile.label, 4.25, 10.88, { align: "center" });
-      }
-
-      const safeWidth = String(printedWidthIn).replace(".", "_");
-      const safeHeight = String(printedHeightIn).replace(".", "_");
-      pdf.save(`vtt_slices_${safeWidth}x${safeHeight}.pdf`);
       setExportMessage("PDF downloaded.");
     } catch (error) {
       console.error(error);
@@ -631,6 +397,7 @@ function App() {
                 borderRadius: "999px",
                 padding: "4px",
                 gap: "4px",
+                marginBottom: "12px",
               }}
             >
               <button
@@ -668,9 +435,7 @@ function App() {
               </button>
             </div>
 
-            <div style={{ marginTop: "12px", marginBottom: "8px", fontWeight: 700 }}>
-              Grid Size (in)
-            </div>
+            <div style={{ marginBottom: "8px", fontWeight: 700 }}>Grid Size (in)</div>
 
             <div
               style={{
@@ -926,24 +691,28 @@ function App() {
                   {formatInches(sourceSizeReport.sourceHeightIn)}"
                 </div>
                 <div>
-                  Printed size: {formatInches(printedWidthIn)}" × {formatInches(printedHeightIn)}" (
+                  Printed size: {formatInches(printedWidthIn)}" ×{" "}
+                  {formatInches(printedHeightIn)}" (
                   {formatPercent(sourceSizeReport.stretchX)}% ×{" "}
                   {formatPercent(sourceSizeReport.stretchY)}%)
                 </div>
               </>
             ) : (
               <div>
-                Printed size: {formatInches(printedWidthIn)}" × {formatInches(printedHeightIn)}"
+                Printed size: {formatInches(printedWidthIn)}" ×{" "}
+                {formatInches(printedHeightIn)}"
               </div>
             )}
 
-            <div>
-              Slice mode: {sliceSize === "8x10" ? "8 × 10" : "8 × 10.5"}
-            </div>
+            <div>Slice mode: {sliceSize === "8x10" ? "8 × 10" : "8 × 10.5"}</div>
             <div>Export DPI: {EXPORT_DPI}</div>
             <div>Grid size: {gridSizeIn}"</div>
+            {sourcePixelWidth && sourcePixelHeight && (
+              <div>
+                Source pixels: {sourcePixelWidth} × {sourcePixelHeight}
+              </div>
+            )}
           </div>
-
         </section>
       </main>
     </div>
