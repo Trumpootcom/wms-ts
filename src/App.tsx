@@ -1,3 +1,4 @@
+import { jsPDF } from "jspdf";
 import { useMemo, useState } from "react";
 
 const MIN_SIZE_IN = 8;
@@ -6,6 +7,7 @@ const DEFAULT_WIDTH_IN = 30;
 const DEFAULT_HEIGHT_IN = 20;
 const PREVIEW_MAX_WIDTH_PX = 900;
 const PREVIEW_MAX_HEIGHT_PX = 620;
+const EXPORT_DPI = 150;
 
 function clamp(value: number, min: number, max: number): number {
   if (Number.isNaN(value)) return min;
@@ -29,6 +31,66 @@ function rowLabelFromIndex(index: number): string {
   return label;
 }
 
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Failed to load image for export."));
+    img.src = src;
+  });
+}
+
+function getPageMargins(sliceSize: SliceSize): { left: number; top: number } {
+  if (sliceSize === "8x10.5") {
+    return { left: 0.25, top: 0.25 };
+  }
+  return { left: 0.25, top: 0.5 };
+}
+
+function drawLineGrid(
+  ctx: CanvasRenderingContext2D,
+  tileWidthPx: number,
+  tileHeightPx: number,
+  tileXIn: number,
+  tileYIn: number,
+  tileWidthIn: number,
+  tileHeightIn: number,
+  dpi: number,
+  strokeStyle: string,
+) {
+  ctx.save();
+  ctx.strokeStyle = strokeStyle;
+  ctx.lineWidth = 1;
+
+  const startVertical = Math.ceil(tileXIn);
+  const endVertical = Math.floor(tileXIn + tileWidthIn);
+
+  for (let inch = startVertical; inch <= endVertical; inch++) {
+    const x = (inch - tileXIn) * dpi;
+    if (x < 0 || x > tileWidthPx) continue;
+    const crispX = Math.round(x) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(crispX, 0);
+    ctx.lineTo(crispX, tileHeightPx);
+    ctx.stroke();
+  }
+
+  const startHorizontal = Math.ceil(tileYIn);
+  const endHorizontal = Math.floor(tileYIn + tileHeightIn);
+
+  for (let inch = startHorizontal; inch <= endHorizontal; inch++) {
+    const y = (inch - tileYIn) * dpi;
+    if (y < 0 || y > tileHeightPx) continue;
+    const crispY = Math.round(y) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(0, crispY);
+    ctx.lineTo(tileWidthPx, crispY);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
 type GridColor = "black" | "white";
 type GridMode = "none" | "line";
 type SliceSize = "8x10" | "8x10.5";
@@ -44,6 +106,9 @@ function App() {
   const [gridMode, setGridMode] = useState<GridMode>("line");
   const [gridColor, setGridColor] = useState<GridColor>("black");
   const [sliceSize, setSliceSize] = useState<SliceSize>("8x10");
+
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [exportMessage, setExportMessage] = useState<string>("");
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -198,14 +263,15 @@ function App() {
   const previewGridLineColor =
     gridColor === "black" ? "rgba(0,0,0,0.65)" : "rgba(255,255,255,0.85)";
 
+  const exportGridLineColor = gridColor === "black" ? "#000000" : "#ffffff";
+
   const sliceLineColor =
     gridColor === "black" ? "rgba(220, 38, 38, 0.95)" : "rgba(239, 68, 68, 0.95)";
 
   const labelBgColor =
     gridColor === "black" ? "rgba(255,255,255,0.88)" : "rgba(17,24,39,0.82)";
 
-  const labelTextColor =
-    gridColor === "black" ? "#111827" : "#ffffff";
+  const labelTextColor = gridColor === "black" ? "#111827" : "#ffffff";
 
   const previewStage = useMemo(() => {
     const aspect = printedWidthIn / printedHeightIn;
@@ -223,6 +289,111 @@ function App() {
       height: Math.round(height),
     };
   }, [printedWidthIn, printedHeightIn]);
+
+  async function handleExportPdf() {
+    if (!imageUrl) {
+      setExportMessage("Please upload an image first.");
+      return;
+    }
+
+    setIsExporting(true);
+    setExportMessage("Preparing PDF...");
+
+    try {
+      const sourceImage = await loadImage(imageUrl);
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "in",
+        format: "letter",
+        compress: true,
+      });
+
+      const margins = getPageMargins(sliceSize);
+
+      for (let i = 0; i < sliceEstimate.tiles.length; i++) {
+        const tile = sliceEstimate.tiles[i];
+
+        setExportMessage(
+          `Rendering page ${i + 1} of ${sliceEstimate.tiles.length} (${tile.label})...`,
+        );
+
+        if (i > 0) {
+          pdf.addPage("letter", "portrait");
+        }
+
+        const tileWidthPx = Math.max(1, Math.round(tile.widthIn * EXPORT_DPI));
+        const tileHeightPx = Math.max(1, Math.round(tile.heightIn * EXPORT_DPI));
+
+        const canvas = document.createElement("canvas");
+        canvas.width = tileWidthPx;
+        canvas.height = tileHeightPx;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          throw new Error("Could not create export canvas.");
+        }
+
+        const sx = (tile.xIn / printedWidthIn) * sourceImage.width;
+        const sy = (tile.yIn / printedHeightIn) * sourceImage.height;
+        const sw = (tile.widthIn / printedWidthIn) * sourceImage.width;
+        const sh = (tile.heightIn / printedHeightIn) * sourceImage.height;
+
+        ctx.drawImage(
+          sourceImage,
+          sx,
+          sy,
+          sw,
+          sh,
+          0,
+          0,
+          tileWidthPx,
+          tileHeightPx,
+        );
+
+        if (gridMode === "line") {
+          drawLineGrid(
+            ctx,
+            tileWidthPx,
+            tileHeightPx,
+            tile.xIn,
+            tile.yIn,
+            tile.widthIn,
+            tile.heightIn,
+            EXPORT_DPI,
+            exportGridLineColor,
+          );
+        }
+
+        const imageDataUrl = canvas.toDataURL("image/jpeg", 0.92);
+
+        pdf.addImage(
+          imageDataUrl,
+          "JPEG",
+          margins.left,
+          margins.top,
+          tile.widthIn,
+          tile.heightIn,
+          undefined,
+          "FAST",
+        );
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(10);
+        pdf.setTextColor(60, 60, 60);
+        pdf.text(tile.label, 4.25, 10.88, { align: "center" });
+      }
+
+      const safeWidth = String(printedWidthIn).replace(".", "_");
+      const safeHeight = String(printedHeightIn).replace(".", "_");
+      pdf.save(`vtt_slices_${safeWidth}x${safeHeight}.pdf`);
+      setExportMessage("PDF downloaded.");
+    } catch (error) {
+      console.error(error);
+      setExportMessage("Export failed.");
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   return (
     <div
@@ -506,6 +677,7 @@ function App() {
               borderRadius: "10px",
               padding: "12px",
               background: "#f9fafb",
+              marginBottom: "20px",
             }}
           >
             <div style={{ fontWeight: 700, marginBottom: "8px" }}>Page Estimate</div>
@@ -514,6 +686,30 @@ function App() {
             </div>
             <div>Estimated pages: {sliceEstimate.total}</div>
           </div>
+
+          <button
+            type="button"
+            disabled={!imageUrl || isExporting}
+            onClick={handleExportPdf}
+            style={{
+              width: "100%",
+              border: "none",
+              borderRadius: "10px",
+              padding: "12px 16px",
+              background: !imageUrl || isExporting ? "#9ca3af" : "#2563eb",
+              color: "white",
+              fontWeight: 700,
+              cursor: !imageUrl || isExporting ? "not-allowed" : "pointer",
+            }}
+          >
+            {isExporting ? "Exporting PDF..." : "Export PDF"}
+          </button>
+
+          {exportMessage && (
+            <div style={{ marginTop: "12px", color: "#4b5563", fontSize: "14px" }}>
+              {exportMessage}
+            </div>
+          )}
         </aside>
 
         <section
@@ -641,6 +837,9 @@ function App() {
           </div>
           <div style={{ marginTop: "6px", color: "#4b5563" }}>
             Slice mode: {sliceSize === "8x10" ? "8 × 10" : "8 × 10.5"}
+          </div>
+          <div style={{ marginTop: "6px", color: "#4b5563" }}>
+            Export DPI: {EXPORT_DPI}
           </div>
         </section>
       </main>
