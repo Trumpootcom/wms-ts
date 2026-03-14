@@ -55,6 +55,7 @@ function drawLineGrid(
   tileYIn: number,
   tileWidthIn: number,
   tileHeightIn: number,
+  gridSizeIn: number,
   dpi: number,
   strokeStyle: string,
 ) {
@@ -62,11 +63,13 @@ function drawLineGrid(
   ctx.strokeStyle = strokeStyle;
   ctx.lineWidth = 1;
 
-  const startVertical = Math.ceil(tileXIn);
-  const endVertical = Math.floor(tileXIn + tileWidthIn);
+  const epsilon = 0.000001;
 
-  for (let inch = startVertical; inch <= endVertical; inch++) {
-    const x = (inch - tileXIn) * dpi;
+  const startVertical = Math.ceil(tileXIn / gridSizeIn - epsilon) * gridSizeIn;
+  const endVertical = tileXIn + tileWidthIn + epsilon;
+
+  for (let inch = startVertical; inch <= endVertical; inch += gridSizeIn) {
+    const x = ((inch - tileXIn) / gridSizeIn) * (gridSizeIn * dpi);
     if (x < 0 || x > tileWidthPx) continue;
     const crispX = Math.round(x) + 0.5;
     ctx.beginPath();
@@ -75,11 +78,11 @@ function drawLineGrid(
     ctx.stroke();
   }
 
-  const startHorizontal = Math.ceil(tileYIn);
-  const endHorizontal = Math.floor(tileYIn + tileHeightIn);
+  const startHorizontal = Math.ceil(tileYIn / gridSizeIn - epsilon) * gridSizeIn;
+  const endHorizontal = tileYIn + tileHeightIn + epsilon;
 
-  for (let inch = startHorizontal; inch <= endHorizontal; inch++) {
-    const y = (inch - tileYIn) * dpi;
+  for (let inch = startHorizontal; inch <= endHorizontal; inch += gridSizeIn) {
+    const y = ((inch - tileYIn) / gridSizeIn) * (gridSizeIn * dpi);
     if (y < 0 || y > tileHeightPx) continue;
     const crispY = Math.round(y) + 0.5;
     ctx.beginPath();
@@ -91,9 +94,11 @@ function drawLineGrid(
   ctx.restore();
 }
 
+
 type GridColor = "black" | "white";
 type GridMode = "none" | "line";
 type SliceSize = "8x10" | "8x10.5";
+type GridSize = 0.75 | 1 | 1.25 | 1.5;
 
 function App() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -106,9 +111,13 @@ function App() {
   const [gridMode, setGridMode] = useState<GridMode>("line");
   const [gridColor, setGridColor] = useState<GridColor>("black");
   const [sliceSize, setSliceSize] = useState<SliceSize>("8x10");
+  const [gridSizeIn, setGridSizeIn] = useState<GridSize>(1);
 
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [exportMessage, setExportMessage] = useState<string>("");
+
+  const [sourcePixelWidth, setSourcePixelWidth] = useState<number | null>(null);
+  const [sourcePixelHeight, setSourcePixelHeight] = useState<number | null>(null);
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -119,6 +128,9 @@ function App() {
     const img = new Image();
     img.onload = () => {
       if (!img.width || !img.height) return;
+
+      setSourcePixelWidth(img.width);
+      setSourcePixelHeight(img.height);
 
       const aspect = img.width / img.height;
       setImageAspectRatio(aspect);
@@ -141,6 +153,16 @@ function App() {
       }
     };
     img.src = url;
+  }
+
+  function formatInches(value: number): string {
+    const rounded = Math.round(value * 10) / 10;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  }
+
+  function formatPercent(value: number): string {
+    const rounded = Math.round(value * 10) / 10;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
   }
 
   function updateWidth(nextWidthRaw: number) {
@@ -290,6 +312,35 @@ function App() {
     };
   }, [printedWidthIn, printedHeightIn]);
 
+  const sourceSizeReport = useMemo(() => {
+    if (!imageAspectRatio) return null;
+
+    const printedAspect = printedWidthIn / printedHeightIn;
+
+    let sourceWidthIn: number;
+    let sourceHeightIn: number;
+
+    // Fit the source-aspect rectangle inside the printed rectangle.
+    // This guarantees one reported axis is 100% and the other is >= 100%.
+    if (imageAspectRatio >= printedAspect) {
+      sourceHeightIn = printedHeightIn;
+      sourceWidthIn = printedHeightIn * imageAspectRatio;
+    } else {
+      sourceWidthIn = printedWidthIn;
+      sourceHeightIn = printedWidthIn / imageAspectRatio;
+    }
+
+    const stretchX = (printedWidthIn / sourceWidthIn) * 100;
+    const stretchY = (printedHeightIn / sourceHeightIn) * 100;
+
+    return {
+      sourceWidthIn,
+      sourceHeightIn,
+      stretchX,
+      stretchY,
+    };
+  }, [imageAspectRatio, printedWidthIn, printedHeightIn]);
+
   async function handleExportPdf() {
     if (!imageUrl) {
       setExportMessage("Please upload an image first.");
@@ -359,6 +410,7 @@ function App() {
             tile.yIn,
             tile.widthIn,
             tile.heightIn,
+            gridSizeIn,
             EXPORT_DPI,
             exportGridLineColor,
           );
@@ -615,6 +667,40 @@ function App() {
                 White
               </button>
             </div>
+
+            <div style={{ marginTop: "12px", marginBottom: "8px", fontWeight: 700 }}>
+              Grid Size (in)
+            </div>
+
+            <div
+              style={{
+                display: "inline-flex",
+                background: "#e5e7eb",
+                borderRadius: "999px",
+                padding: "4px",
+                gap: "4px",
+                flexWrap: "wrap",
+              }}
+            >
+              {[0.75, 1, 1.25, 1.5].map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => setGridSizeIn(size as GridSize)}
+                  style={{
+                    border: "none",
+                    borderRadius: "999px",
+                    padding: "8px 16px",
+                    cursor: "pointer",
+                    background: gridSizeIn === size ? "#111827" : "transparent",
+                    color: gridSizeIn === size ? "white" : "#111827",
+                    fontWeight: 700,
+                  }}
+                >
+                  {size}"
+                </button>
+              ))}
+            </div>
           </div>
 
           <div
@@ -784,7 +870,7 @@ function App() {
                       linear-gradient(to right, ${previewGridLineColor} 1px, transparent 1px),
                       linear-gradient(to bottom, ${previewGridLineColor} 1px, transparent 1px)
                     `,
-                    backgroundSize: `${100 / printedWidthIn}% ${100 / printedHeightIn}%`,
+                    backgroundSize: `${(gridSizeIn * 100) / printedWidthIn}% ${(gridSizeIn * 100) / printedHeightIn}%`,
                   }}
                 />
               )}
@@ -832,15 +918,32 @@ function App() {
             </div>
           </div>
 
-          <div style={{ marginTop: "16px", color: "#4b5563" }}>
-            Printed size: {printedWidthIn}" × {printedHeightIn}"
+          <div style={{ marginTop: "16px", color: "#4b5563", lineHeight: 1.5 }}>
+            {sourceSizeReport ? (
+              <>
+                <div>
+                  Source size: {formatInches(sourceSizeReport.sourceWidthIn)}" ×{" "}
+                  {formatInches(sourceSizeReport.sourceHeightIn)}"
+                </div>
+                <div>
+                  Printed size: {formatInches(printedWidthIn)}" × {formatInches(printedHeightIn)}" (
+                  {formatPercent(sourceSizeReport.stretchX)}% ×{" "}
+                  {formatPercent(sourceSizeReport.stretchY)}%)
+                </div>
+              </>
+            ) : (
+              <div>
+                Printed size: {formatInches(printedWidthIn)}" × {formatInches(printedHeightIn)}"
+              </div>
+            )}
+
+            <div>
+              Slice mode: {sliceSize === "8x10" ? "8 × 10" : "8 × 10.5"}
+            </div>
+            <div>Export DPI: {EXPORT_DPI}</div>
+            <div>Grid size: {gridSizeIn}"</div>
           </div>
-          <div style={{ marginTop: "6px", color: "#4b5563" }}>
-            Slice mode: {sliceSize === "8x10" ? "8 × 10" : "8 × 10.5"}
-          </div>
-          <div style={{ marginTop: "6px", color: "#4b5563" }}>
-            Export DPI: {EXPORT_DPI}
-          </div>
+
         </section>
       </main>
     </div>
