@@ -6,6 +6,8 @@ const DEFAULT_WIDTH_IN = 30;
 const DEFAULT_HEIGHT_IN = 20;
 const TILE_WIDTH_IN = 8;
 const TILE_HEIGHT_IN = 10;
+const PREVIEW_MAX_WIDTH_PX = 900;
+const PREVIEW_MAX_HEIGHT_PX = 620;
 
 function clamp(value: number, min: number, max: number): number {
   if (Number.isNaN(value)) return min;
@@ -16,6 +18,8 @@ function roundToTenth(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
+type GridColor = "black" | "white";
+
 function App() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
@@ -23,6 +27,9 @@ function App() {
   const [printedWidthIn, setPrintedWidthIn] = useState<number>(DEFAULT_WIDTH_IN);
   const [printedHeightIn, setPrintedHeightIn] = useState<number>(DEFAULT_HEIGHT_IN);
   const [maintainAspectRatio, setMaintainAspectRatio] = useState<boolean>(false);
+
+  const [showGrid, setShowGrid] = useState<boolean>(true);
+  const [gridColor, setGridColor] = useState<GridColor>("black");
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -125,6 +132,26 @@ function App() {
       cols,
       rows,
       total: cols * rows,
+    };
+  }, [printedWidthIn, printedHeightIn]);
+
+  const previewGridLineColor =
+    gridColor === "black" ? "rgba(0,0,0,0.65)" : "rgba(255,255,255,0.85)";
+
+  const previewStage = useMemo(() => {
+    const aspect = printedWidthIn / printedHeightIn;
+
+    let width = PREVIEW_MAX_WIDTH_PX;
+    let height = width / aspect;
+
+    if (height > PREVIEW_MAX_HEIGHT_PX) {
+      height = PREVIEW_MAX_HEIGHT_PX;
+      width = height * aspect;
+    }
+
+    return {
+      width: Math.round(width),
+      height: Math.round(height),
     };
   }, [printedWidthIn, printedHeightIn]);
 
@@ -251,6 +278,80 @@ function App() {
 
           <div
             style={{
+              marginBottom: "20px",
+              border: "1px solid #d1d5db",
+              borderRadius: "10px",
+              padding: "12px",
+              background: "#f9fafb",
+            }}
+          >
+            <div style={{ fontWeight: 700, marginBottom: "10px" }}>Grid</div>
+
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginBottom: "12px",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={showGrid}
+                onChange={(e) => setShowGrid(e.target.checked)}
+              />
+              Show grid
+            </label>
+
+            <div style={{ marginBottom: "8px", fontWeight: 700 }}>Grid Color</div>
+
+            <div
+              style={{
+                display: "inline-flex",
+                background: "#e5e7eb",
+                borderRadius: "999px",
+                padding: "4px",
+                gap: "4px",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setGridColor("black")}
+                style={{
+                  border: "none",
+                  borderRadius: "999px",
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  background: gridColor === "black" ? "#111827" : "transparent",
+                  color: gridColor === "black" ? "white" : "#111827",
+                  fontWeight: 700,
+                }}
+              >
+                Black
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setGridColor("white")}
+                style={{
+                  border: "none",
+                  borderRadius: "999px",
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  background: gridColor === "white" ? "white" : "transparent",
+                  color: "#111827",
+                  fontWeight: 700,
+                  boxShadow:
+                    gridColor === "white" ? "0 0 0 1px rgba(0,0,0,0.12) inset" : "none",
+                }}
+              >
+                White
+              </button>
+            </div>
+          </div>
+
+          <div
+            style={{
               border: "1px solid #d1d5db",
               borderRadius: "10px",
               padding: "12px",
@@ -276,19 +377,73 @@ function App() {
         >
           <h2 style={{ marginTop: 0 }}>Preview</h2>
 
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt="Uploaded map preview"
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "flex-start",
+              width: "100%",
+              overflow: "auto",
+            }}
+          >
+            <div
               style={{
-                maxWidth: "100%",
-                maxHeight: "600px",
-                border: "1px solid #ccc",
+                width: `${previewStage.width}px`,
+                height: `${previewStage.height}px`,
+                position: "relative",
+                border: "1px solid #9ca3af",
+                background: "#e5e7eb",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                overflow: "hidden",
               }}
-            />
-          ) : (
-            <p>No image loaded</p>
-          )}
+            >
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt="Uploaded map preview"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "fill",
+                    display: "block",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#4b5563",
+                    fontSize: "18px",
+                    background:
+                      "linear-gradient(135deg, rgba(255,255,255,0.55), rgba(0,0,0,0.04))",
+                  }}
+                >
+                  No image loaded
+                </div>
+              )}
+
+              {showGrid && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    pointerEvents: "none",
+                    backgroundImage: `
+                      linear-gradient(to right, ${previewGridLineColor} 1px, transparent 1px),
+                      linear-gradient(to bottom, ${previewGridLineColor} 1px, transparent 1px)
+                    `,
+                    backgroundSize: `${100 / printedWidthIn}% ${100 / printedHeightIn}%`,
+                  }}
+                />
+              )}
+            </div>
+          </div>
 
           <div style={{ marginTop: "16px", color: "#4b5563" }}>
             Printed size: {printedWidthIn}" × {printedHeightIn}"
