@@ -4,8 +4,6 @@ const MIN_SIZE_IN = 8;
 const MAX_SIZE_IN = 36;
 const DEFAULT_WIDTH_IN = 30;
 const DEFAULT_HEIGHT_IN = 20;
-const TILE_WIDTH_IN = 8;
-const TILE_HEIGHT_IN = 10;
 const PREVIEW_MAX_WIDTH_PX = 900;
 const PREVIEW_MAX_HEIGHT_PX = 620;
 
@@ -18,7 +16,22 @@ function roundToTenth(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
+function rowLabelFromIndex(index: number): string {
+  let n = index + 1;
+  let label = "";
+
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    label = String.fromCharCode(65 + rem) + label;
+    n = Math.floor((n - 1) / 26);
+  }
+
+  return label;
+}
+
 type GridColor = "black" | "white";
+type GridMode = "none" | "line";
+type SliceSize = "8x10" | "8x10.5";
 
 function App() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -28,8 +41,9 @@ function App() {
   const [printedHeightIn, setPrintedHeightIn] = useState<number>(DEFAULT_HEIGHT_IN);
   const [maintainAspectRatio, setMaintainAspectRatio] = useState<boolean>(false);
 
-  const [showGrid, setShowGrid] = useState<boolean>(true);
+  const [gridMode, setGridMode] = useState<GridMode>("line");
   const [gridColor, setGridColor] = useState<GridColor>("black");
+  const [sliceSize, setSliceSize] = useState<SliceSize>("8x10");
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -125,18 +139,73 @@ function App() {
     }
   }
 
-  const pageEstimate = useMemo(() => {
-    const cols = Math.ceil(printedWidthIn / TILE_WIDTH_IN);
-    const rows = Math.ceil(printedHeightIn / TILE_HEIGHT_IN);
+  const tileConfig = useMemo(() => {
+    if (sliceSize === "8x10.5") {
+      return { widthIn: 8, heightIn: 10.5 };
+    }
+    return { widthIn: 8, heightIn: 10 };
+  }, [sliceSize]);
+
+  const sliceEstimate = useMemo(() => {
+    const cols = Math.ceil(printedWidthIn / tileConfig.widthIn);
+    const rows = Math.ceil(printedHeightIn / tileConfig.heightIn);
+
+    const tiles: Array<{
+      row: number;
+      col: number;
+      xIn: number;
+      yIn: number;
+      widthIn: number;
+      heightIn: number;
+      label: string;
+    }> = [];
+
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const xIn = col * tileConfig.widthIn;
+        const yIn = row * tileConfig.heightIn;
+
+        const widthIn =
+          col === cols - 1
+            ? roundToTenth(printedWidthIn - col * tileConfig.widthIn)
+            : tileConfig.widthIn;
+
+        const heightIn =
+          row === rows - 1
+            ? roundToTenth(printedHeightIn - row * tileConfig.heightIn)
+            : tileConfig.heightIn;
+
+        tiles.push({
+          row,
+          col,
+          xIn,
+          yIn,
+          widthIn,
+          heightIn,
+          label: `${rowLabelFromIndex(row)}${col + 1}`,
+        });
+      }
+    }
+
     return {
       cols,
       rows,
       total: cols * rows,
+      tiles,
     };
-  }, [printedWidthIn, printedHeightIn]);
+  }, [printedWidthIn, printedHeightIn, tileConfig]);
 
   const previewGridLineColor =
     gridColor === "black" ? "rgba(0,0,0,0.65)" : "rgba(255,255,255,0.85)";
+
+  const sliceLineColor =
+    gridColor === "black" ? "rgba(220, 38, 38, 0.95)" : "rgba(239, 68, 68, 0.95)";
+
+  const labelBgColor =
+    gridColor === "black" ? "rgba(255,255,255,0.88)" : "rgba(17,24,39,0.82)";
+
+  const labelTextColor =
+    gridColor === "black" ? "#111827" : "#ffffff";
 
   const previewStage = useMemo(() => {
     const aspect = printedWidthIn / printedHeightIn;
@@ -287,21 +356,48 @@ function App() {
           >
             <div style={{ fontWeight: 700, marginBottom: "10px" }}>Grid</div>
 
-            <label
+            <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
+                display: "inline-flex",
+                background: "#e5e7eb",
+                borderRadius: "999px",
+                padding: "4px",
+                gap: "4px",
                 marginBottom: "12px",
               }}
             >
-              <input
-                type="checkbox"
-                checked={showGrid}
-                onChange={(e) => setShowGrid(e.target.checked)}
-              />
-              Show grid
-            </label>
+              <button
+                type="button"
+                onClick={() => setGridMode("none")}
+                style={{
+                  border: "none",
+                  borderRadius: "999px",
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  background: gridMode === "none" ? "#111827" : "transparent",
+                  color: gridMode === "none" ? "white" : "#111827",
+                  fontWeight: 700,
+                }}
+              >
+                None
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setGridMode("line")}
+                style={{
+                  border: "none",
+                  borderRadius: "999px",
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  background: gridMode === "line" ? "#111827" : "transparent",
+                  color: gridMode === "line" ? "white" : "#111827",
+                  fontWeight: 700,
+                }}
+              >
+                Line
+              </button>
+            </div>
 
             <div style={{ marginBottom: "8px", fontWeight: 700 }}>Grid Color</div>
 
@@ -352,6 +448,60 @@ function App() {
 
           <div
             style={{
+              marginBottom: "20px",
+              border: "1px solid #d1d5db",
+              borderRadius: "10px",
+              padding: "12px",
+              background: "#f9fafb",
+            }}
+          >
+            <div style={{ fontWeight: 700, marginBottom: "10px" }}>Slice Size</div>
+
+            <div
+              style={{
+                display: "inline-flex",
+                background: "#e5e7eb",
+                borderRadius: "999px",
+                padding: "4px",
+                gap: "4px",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setSliceSize("8x10")}
+                style={{
+                  border: "none",
+                  borderRadius: "999px",
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  background: sliceSize === "8x10" ? "#111827" : "transparent",
+                  color: sliceSize === "8x10" ? "white" : "#111827",
+                  fontWeight: 700,
+                }}
+              >
+                8 × 10
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSliceSize("8x10.5")}
+                style={{
+                  border: "none",
+                  borderRadius: "999px",
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  background: sliceSize === "8x10.5" ? "#111827" : "transparent",
+                  color: sliceSize === "8x10.5" ? "white" : "#111827",
+                  fontWeight: 700,
+                }}
+              >
+                8 × 10.5
+              </button>
+            </div>
+          </div>
+
+          <div
+            style={{
               border: "1px solid #d1d5db",
               borderRadius: "10px",
               padding: "12px",
@@ -360,9 +510,9 @@ function App() {
           >
             <div style={{ fontWeight: 700, marginBottom: "8px" }}>Page Estimate</div>
             <div>
-              Estimated tiles: {pageEstimate.cols} × {pageEstimate.rows}
+              Estimated tiles: {sliceEstimate.cols} × {sliceEstimate.rows}
             </div>
-            <div>Estimated pages: {pageEstimate.total}</div>
+            <div>Estimated pages: {sliceEstimate.total}</div>
           </div>
         </aside>
 
@@ -428,7 +578,7 @@ function App() {
                 </div>
               )}
 
-              {showGrid && (
+              {gridMode === "line" && (
                 <div
                   style={{
                     position: "absolute",
@@ -442,11 +592,55 @@ function App() {
                   }}
                 />
               )}
+
+              {sliceEstimate.tiles.map((tile) => {
+                const leftPct = (tile.xIn / printedWidthIn) * 100;
+                const topPct = (tile.yIn / printedHeightIn) * 100;
+                const widthPct = (tile.widthIn / printedWidthIn) * 100;
+                const heightPct = (tile.heightIn / printedHeightIn) * 100;
+
+                return (
+                  <div
+                    key={tile.label}
+                    style={{
+                      position: "absolute",
+                      left: `${leftPct}%`,
+                      top: `${topPct}%`,
+                      width: `${widthPct}%`,
+                      height: `${heightPct}%`,
+                      border: `2px solid ${sliceLineColor}`,
+                      boxSizing: "border-box",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "6px",
+                        left: "6px",
+                        padding: "2px 6px",
+                        borderRadius: "999px",
+                        background: labelBgColor,
+                        color: labelTextColor,
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        lineHeight: 1.2,
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.18)",
+                      }}
+                    >
+                      {tile.label}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
           <div style={{ marginTop: "16px", color: "#4b5563" }}>
             Printed size: {printedWidthIn}" × {printedHeightIn}"
+          </div>
+          <div style={{ marginTop: "6px", color: "#4b5563" }}>
+            Slice mode: {sliceSize === "8x10" ? "8 × 10" : "8 × 10.5"}
           </div>
         </section>
       </main>
