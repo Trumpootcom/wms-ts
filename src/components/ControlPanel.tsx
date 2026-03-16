@@ -27,8 +27,66 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                 <input type="file" accept="image/*" onChange={slicer.handleFileUpload} />
             </div>
 
+            <PanelSection title="Image Adjustments">
+                <NumberWithSlider
+                    label="Brightness"
+                    value={slicer.imageAdjustments.brightness}
+                    min={0}
+                    max={200}
+                    stepInput={1}
+                    stepSlider={1}
+                    onChange={(value) => slicer.updateImageAdjustment("brightness", value)}
+                />
+
+                <NumberWithSlider
+                    label="Contrast"
+                    value={slicer.imageAdjustments.contrast}
+                    min={0}
+                    max={200}
+                    stepInput={1}
+                    stepSlider={1}
+                    onChange={(value) => slicer.updateImageAdjustment("contrast", value)}
+                />
+
+                <NumberWithSlider
+                    label="Saturation"
+                    value={slicer.imageAdjustments.saturation}
+                    min={0}
+                    max={200}
+                    stepInput={1}
+                    stepSlider={1}
+                    onChange={(value) => slicer.updateImageAdjustment("saturation", value)}
+                />
+
+                <NumberWithSlider
+                    label="Gamma"
+                    value={slicer.imageAdjustments.gamma}
+                    min={0.2}
+                    max={3}
+                    stepInput={0.1}
+                    stepSlider={0.1}
+                    onChange={(value) => slicer.updateImageAdjustment("gamma", value)}
+                />
+
+                <button
+                    type="button"
+                    onClick={slicer.resetImageAdjustments}
+                    style={{
+                        width: "100%",
+                        border: "1px solid #9ca3af",
+                        borderRadius: "10px",
+                        padding: "10px 14px",
+                        background: "#f9fafb",
+                        color: "#111827",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                    }}
+                >
+                    Reset Adjustments
+                </button>
+            </PanelSection>
             <NumberWithSlider
-                label="Printed Width (in)"
+                label="Print Wid (in)"
                 value={slicer.printedWidthIn}
                 min={8}
                 max={36}
@@ -36,7 +94,7 @@ function ControlPanel({ slicer }: ControlPanelProps) {
             />
 
             <NumberWithSlider
-                label="Printed Height (in)"
+                label="Print Ht (in)"
                 value={slicer.printedHeightIn}
                 min={8}
                 max={36}

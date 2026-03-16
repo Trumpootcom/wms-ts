@@ -20,6 +20,7 @@ import type {
   GridColor,
   GridMode,
   GridSize,
+  ImageAdjustments,
   SliceSize,
 } from "../slicer/types.ts";
 
@@ -42,6 +43,13 @@ export function useSlicerState() {
 
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [exportMessage, setExportMessage] = useState<string>("");
+
+  const [imageAdjustments, setImageAdjustments] = useState<ImageAdjustments>({
+    brightness: 100,
+    contrast: 100,
+    saturation: 100,
+    gamma: 1,
+  });
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -219,6 +227,24 @@ export function useSlicerState() {
     }
   }
 
+  function updateImageAdjustment<K extends keyof ImageAdjustments>(
+    key: K,
+    value: ImageAdjustments[K],
+  ) {
+    setImageAdjustments((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  }
+
+  function resetImageAdjustments() {
+    setImageAdjustments({
+      brightness: 100,
+      contrast: 100,
+      saturation: 100,
+      gamma: 1,
+    });
+  }
   return {
     imageUrl,
     imageAspectRatio,
@@ -253,5 +279,8 @@ export function useSlicerState() {
     setGridSizeIn,
 
     exportDpi: EXPORT_DPI,
+    imageAdjustments,
+    updateImageAdjustment,
+    resetImageAdjustments,
   };
 }
