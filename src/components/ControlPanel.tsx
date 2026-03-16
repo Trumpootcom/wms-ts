@@ -11,10 +11,11 @@ function ControlPanel({ slicer }: ControlPanelProps) {
     return (
         <aside
             style={{
-                background: "white",
-                borderRadius: "12px",
+                background: "#d1d5db",
                 padding: "16px",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                minHeight: "100%",
+                boxSizing: "border-box",
+                overflowY: "auto",
             }}
         >
             <h2 style={{ marginTop: 0 }}>Controls</h2>

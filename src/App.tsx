@@ -18,7 +18,7 @@ function App() {
         style={{
           background: "#1f2937",
           color: "white",
-          padding: "16px 24px",
+          padding: "10px",
         }}
       >
         <h1 style={{ margin: 0 }}>VTT Slicer</h1>
@@ -28,8 +28,9 @@ function App() {
         style={{
           display: "grid",
           gridTemplateColumns: "340px 1fr",
-          gap: "16px",
-          padding: "16px",
+          gap: "0",
+          padding: "0",
+          minHeight: "calc(100vh - 69px)",
         }}
       >
         <ControlPanel slicer={slicer} />
