@@ -1,6 +1,8 @@
 import { jsPDF } from "jspdf";
 import { drawCornerGrid, drawDashedGrid, drawLineGrid } from "./grid.ts";
 import type { GridColor, GridMode, SliceEstimate, SliceSize } from "./types.ts";
+import { drawAdjustedSliceToCanvas } from "./imageAdjustments.ts";
+import type { ImageAdjustments } from "./types.ts";
 
 export async function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -31,6 +33,7 @@ type ExportPdfArgs = {
   gridMode: GridMode;
   gridColor: GridColor;
   gridSizeIn: number;
+  imageAdjustments: ImageAdjustments;
   exportDpi: number;
   onProgress?: (message: string) => void;
 };
@@ -44,6 +47,7 @@ export async function exportSlicedPdf({
   gridMode,
   gridColor,
   gridSizeIn,
+  imageAdjustments,
   exportDpi,
   onProgress,
 }: ExportPdfArgs): Promise<void> {
@@ -87,8 +91,17 @@ export async function exportSlicedPdf({
     const sw = (tile.widthIn / printedWidthIn) * sourceImage.width;
     const sh = (tile.heightIn / printedHeightIn) * sourceImage.height;
     ctx.save();
-    //ctx.filter = "brightness(1.5) contrast(1.0)";
-    ctx.drawImage(sourceImage, sx, sy, sw, sh, 0, 0, tileWidthPx, tileHeightPx);
+drawAdjustedSliceToCanvas({
+  canvas: canvas,
+  image: sourceImage,
+  sourceX: sx,
+  sourceY: sy,
+  sourceWidth: sw,
+  sourceHeight: sh,
+  destWidth: tileWidthPx,
+  destHeight: tileHeightPx,
+  adjustments: imageAdjustments,
+});    
     ctx.restore();
 
 

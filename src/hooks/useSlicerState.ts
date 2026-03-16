@@ -214,6 +214,7 @@ export function useSlicerState() {
         gridMode,
         gridColor,
         gridSizeIn,
+        imageAdjustments,
         exportDpi: EXPORT_DPI,
         onProgress: setExportMessage,
       });
