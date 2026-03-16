@@ -12,6 +12,7 @@ function App() {
         background: "#f3f4f6",
         color: "#111827",
         fontFamily: "Arial, sans-serif",
+        overflow: "hidden",
       }}
     >
       <header
@@ -27,14 +28,19 @@ function App() {
       <main
         style={{
           display: "grid",
-          gridTemplateColumns: "340px 1fr",
+          gridTemplateColumns: "340px 1px 1fr",
           gap: "0",
           padding: "0",
           minHeight: "calc(100vh - 69px)",
         }}
       >
         <ControlPanel slicer={slicer} />
-
+<div
+  style={{
+    background: "#9ca3af",
+    width: "1px",
+  }}
+/>
         <PreviewPanel
           imageUrl={slicer.imageUrl}
           printedWidthIn={slicer.printedWidthIn}
