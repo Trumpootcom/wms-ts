@@ -91,17 +91,17 @@ export async function exportSlicedPdf({
     const sw = (tile.widthIn / printedWidthIn) * sourceImage.width;
     const sh = (tile.heightIn / printedHeightIn) * sourceImage.height;
     ctx.save();
-drawAdjustedSliceToCanvas({
-  canvas: canvas,
-  image: sourceImage,
-  sourceX: sx,
-  sourceY: sy,
-  sourceWidth: sw,
-  sourceHeight: sh,
-  destWidth: tileWidthPx,
-  destHeight: tileHeightPx,
-  adjustments: imageAdjustments,
-});    
+    drawAdjustedSliceToCanvas({
+      canvas: canvas,
+      image: sourceImage,
+      sourceX: sx,
+      sourceY: sy,
+      sourceWidth: sw,
+      sourceHeight: sh,
+      destWidth: tileWidthPx,
+      destHeight: tileHeightPx,
+      adjustments: imageAdjustments,
+    });
     ctx.restore();
 
 

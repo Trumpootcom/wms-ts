@@ -55,6 +55,7 @@ function App() {
           sourcePixelWidth={slicer.sourcePixelWidth}
           sourcePixelHeight={slicer.sourcePixelHeight}
           exportDpi={slicer.exportDpi}
+          imageAdjustments={slicer.imageAdjustments}
         />
       </main>
     </div>

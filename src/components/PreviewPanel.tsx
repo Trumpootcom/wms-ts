@@ -1,4 +1,11 @@
-import type { GridColor, GridMode, GridSize, SliceEstimate, SliceSize } from "../slicer/types.ts";
+import type {
+  GridColor,
+  GridMode,
+  GridSize,
+  ImageAdjustments,
+  SliceEstimate,
+  SliceSize,
+} from "../slicer/types.ts";
 import { formatInches, formatPercent } from "../utils/format.ts";
 
 type SourceSizeReport = {
@@ -25,6 +32,7 @@ type PreviewPanelProps = {
     sourcePixelWidth: number | null;
     sourcePixelHeight: number | null;
     exportDpi: number;
+    imageAdjustments: ImageAdjustments;
 };
 
 function PreviewPanel({
@@ -41,6 +49,7 @@ function PreviewPanel({
     sourcePixelWidth,
     sourcePixelHeight,
     exportDpi,
+    imageAdjustments,
 }: PreviewPanelProps) {
     const previewGridLineColor =
         gridColor === "black" ? "rgba(0,0,0,0.65)" : "rgba(255,255,255,0.85)";
@@ -58,7 +67,11 @@ function PreviewPanel({
 
     const gridModeLabel = gridMode.charAt(0).toUpperCase() + gridMode.slice(1);
     const sliceSizeLabel = sliceSize === "8x10" ? "8 × 10" : "8 × 10.5";
-
+    const imageFilter = `
+        brightness(${imageAdjustments.brightness}%)
+        contrast(${imageAdjustments.contrast}%)
+        saturate(${imageAdjustments.saturation}%)
+    `;
     return (
         <section
             style={{
@@ -103,6 +116,7 @@ function PreviewPanel({
                                 height: "100%",
                                 objectFit: "fill",
                                 display: "block",
+                                filter: imageFilter,
                             }}
                         />
                     ) : (
