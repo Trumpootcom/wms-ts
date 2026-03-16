@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
-import { drawLineGrid } from "./grid";
-import type { GridColor, GridMode, SliceEstimate, SliceSize } from "./types";
+import { drawCornerGrid, drawDashedGrid, drawLineGrid } from "./grid.ts";
+import type { GridColor, GridMode, SliceEstimate, SliceSize } from "./types.ts";
 
 export async function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -86,11 +86,40 @@ export async function exportSlicedPdf({
     const sy = (tile.yIn / printedHeightIn) * sourceImage.height;
     const sw = (tile.widthIn / printedWidthIn) * sourceImage.width;
     const sh = (tile.heightIn / printedHeightIn) * sourceImage.height;
-
+    ctx.save();
+    //ctx.filter = "brightness(1.5) contrast(1.0)";
     ctx.drawImage(sourceImage, sx, sy, sw, sh, 0, 0, tileWidthPx, tileHeightPx);
+    ctx.restore();
+
 
     if (gridMode === "line") {
       drawLineGrid(
+        ctx,
+        tileWidthPx,
+        tileHeightPx,
+        tile.xIn,
+        tile.yIn,
+        tile.widthIn,
+        tile.heightIn,
+        gridSizeIn,
+        exportDpi,
+        exportGridLineColor,
+      );
+    } else if (gridMode === "dash") {
+      drawDashedGrid(
+        ctx,
+        tileWidthPx,
+        tileHeightPx,
+        tile.xIn,
+        tile.yIn,
+        tile.widthIn,
+        tile.heightIn,
+        gridSizeIn,
+        exportDpi,
+        exportGridLineColor,
+      );
+    } else if (gridMode === "corner") {
+      drawCornerGrid(
         ctx,
         tileWidthPx,
         tileHeightPx,

@@ -1,222 +1,8 @@
-import { useMemo, useState } from "react";
 import PreviewPanel from "./components/PreviewPanel.tsx";
-import {
-  buildSliceEstimate,
-  clamp,
-  getPreviewStageSize,
-  roundToTenth,
-} from "./slicer/math.ts";
-import { exportSlicedPdf } from "./slicer/pdf.ts";
-import type {
-  GridColor,
-  GridMode,
-  GridSize,
-  SliceSize,
-} from "./slicer/types.ts";
-
-const MIN_SIZE_IN = 8;
-const MAX_SIZE_IN = 36;
-const DEFAULT_WIDTH_IN = 30;
-const DEFAULT_HEIGHT_IN = 20;
-const PREVIEW_MAX_WIDTH_PX = 900;
-const PREVIEW_MAX_HEIGHT_PX = 620;
-const EXPORT_DPI = 150;
+import { useSlicerState } from "./hooks/useSlicerState.ts";
 
 function App() {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
-  const [sourcePixelWidth, setSourcePixelWidth] = useState<number | null>(null);
-  const [sourcePixelHeight, setSourcePixelHeight] = useState<number | null>(null);
-
-  const [printedWidthIn, setPrintedWidthIn] = useState<number>(DEFAULT_WIDTH_IN);
-  const [printedHeightIn, setPrintedHeightIn] =
-    useState<number>(DEFAULT_HEIGHT_IN);
-  const [maintainAspectRatio, setMaintainAspectRatio] =
-    useState<boolean>(false);
-
-  const [gridMode, setGridMode] = useState<GridMode>("line");
-  const [gridColor, setGridColor] = useState<GridColor>("black");
-  const [sliceSize, setSliceSize] = useState<SliceSize>("8x10");
-  const [gridSizeIn, setGridSizeIn] = useState<GridSize>(1);
-
-  const [isExporting, setIsExporting] = useState<boolean>(false);
-  const [exportMessage, setExportMessage] = useState<string>("");
-
-  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const url = URL.createObjectURL(file);
-
-    const img = new Image();
-    img.onload = () => {
-      if (!img.width || !img.height) return;
-
-      setSourcePixelWidth(img.width);
-      setSourcePixelHeight(img.height);
-
-      const aspect = img.width / img.height;
-      setImageAspectRatio(aspect);
-      setImageUrl(url);
-
-      if (maintainAspectRatio) {
-        const adjustedHeight = clamp(
-          roundToTenth(printedWidthIn / aspect),
-          MIN_SIZE_IN,
-          MAX_SIZE_IN,
-        );
-        const adjustedWidth = clamp(
-          roundToTenth(adjustedHeight * aspect),
-          MIN_SIZE_IN,
-          MAX_SIZE_IN,
-        );
-
-        setPrintedHeightIn(adjustedHeight);
-        setPrintedWidthIn(adjustedWidth);
-      }
-    };
-    img.src = url;
-  }
-
-  function updateWidth(nextWidthRaw: number) {
-    const nextWidth = clamp(roundToTenth(nextWidthRaw), MIN_SIZE_IN, MAX_SIZE_IN);
-
-    if (maintainAspectRatio && imageAspectRatio) {
-      let nextHeight = roundToTenth(nextWidth / imageAspectRatio);
-      nextHeight = clamp(nextHeight, MIN_SIZE_IN, MAX_SIZE_IN);
-
-      const adjustedWidth = clamp(
-        roundToTenth(nextHeight * imageAspectRatio),
-        MIN_SIZE_IN,
-        MAX_SIZE_IN,
-      );
-
-      setPrintedWidthIn(adjustedWidth);
-      setPrintedHeightIn(nextHeight);
-      return;
-    }
-
-    setPrintedWidthIn(nextWidth);
-  }
-
-  function updateHeight(nextHeightRaw: number) {
-    const nextHeight = clamp(
-      roundToTenth(nextHeightRaw),
-      MIN_SIZE_IN,
-      MAX_SIZE_IN,
-    );
-
-    if (maintainAspectRatio && imageAspectRatio) {
-      let nextWidth = roundToTenth(nextHeight * imageAspectRatio);
-      nextWidth = clamp(nextWidth, MIN_SIZE_IN, MAX_SIZE_IN);
-
-      const adjustedHeight = clamp(
-        roundToTenth(nextWidth / imageAspectRatio),
-        MIN_SIZE_IN,
-        MAX_SIZE_IN,
-      );
-
-      setPrintedWidthIn(nextWidth);
-      setPrintedHeightIn(adjustedHeight);
-      return;
-    }
-
-    setPrintedHeightIn(nextHeight);
-  }
-
-  function handleAspectRatioToggle(e: React.ChangeEvent<HTMLInputElement>) {
-    const checked = e.target.checked;
-    setMaintainAspectRatio(checked);
-
-    if (checked && imageAspectRatio) {
-      let nextHeight = roundToTenth(printedWidthIn / imageAspectRatio);
-      nextHeight = clamp(nextHeight, MIN_SIZE_IN, MAX_SIZE_IN);
-
-      const adjustedWidth = clamp(
-        roundToTenth(nextHeight * imageAspectRatio),
-        MIN_SIZE_IN,
-        MAX_SIZE_IN,
-      );
-
-      setPrintedHeightIn(nextHeight);
-      setPrintedWidthIn(adjustedWidth);
-    }
-  }
-
-  const sliceEstimate = useMemo(
-    () => buildSliceEstimate(printedWidthIn, printedHeightIn, sliceSize),
-    [printedWidthIn, printedHeightIn, sliceSize],
-  );
-
-  const previewStage = useMemo(
-    () =>
-      getPreviewStageSize(
-        printedWidthIn,
-        printedHeightIn,
-        PREVIEW_MAX_WIDTH_PX,
-        PREVIEW_MAX_HEIGHT_PX,
-      ),
-    [printedWidthIn, printedHeightIn],
-  );
-
-  const sourceSizeReport = useMemo(() => {
-    if (!imageAspectRatio) return null;
-
-    const printedAspect = printedWidthIn / printedHeightIn;
-
-    let sourceWidthIn: number;
-    let sourceHeightIn: number;
-
-    if (imageAspectRatio >= printedAspect) {
-      sourceHeightIn = printedHeightIn;
-      sourceWidthIn = printedHeightIn * imageAspectRatio;
-    } else {
-      sourceWidthIn = printedWidthIn;
-      sourceHeightIn = printedWidthIn / imageAspectRatio;
-    }
-
-    const stretchX = (printedWidthIn / sourceWidthIn) * 100;
-    const stretchY = (printedHeightIn / sourceHeightIn) * 100;
-
-    return {
-      sourceWidthIn,
-      sourceHeightIn,
-      stretchX,
-      stretchY,
-    };
-  }, [imageAspectRatio, printedWidthIn, printedHeightIn]);
-
-  async function handleExportPdf() {
-    if (!imageUrl) {
-      setExportMessage("Please upload an image first.");
-      return;
-    }
-
-    setIsExporting(true);
-    setExportMessage("Preparing PDF...");
-
-    try {
-      await exportSlicedPdf({
-        imageUrl,
-        printedWidthIn,
-        printedHeightIn,
-        sliceSize,
-        sliceEstimate,
-        gridMode,
-        gridColor,
-        gridSizeIn,
-        exportDpi: EXPORT_DPI,
-        onProgress: setExportMessage,
-      });
-
-      setExportMessage("PDF downloaded.");
-    } catch (error) {
-      console.error(error);
-      setExportMessage("Export failed.");
-    } finally {
-      setIsExporting(false);
-    }
-  }
+  const slicer = useSlicerState();
 
   return (
     <div
@@ -259,7 +45,7 @@ function App() {
             <label style={{ display: "block", fontWeight: 700, marginBottom: "8px" }}>
               Upload Map
             </label>
-            <input type="file" accept="image/*" onChange={handleFileUpload} />
+            <input type="file" accept="image/*" onChange={slicer.handleFileUpload} />
           </div>
 
           <div style={{ marginBottom: "20px" }}>
@@ -268,11 +54,11 @@ function App() {
             </label>
             <input
               type="number"
-              min={MIN_SIZE_IN}
-              max={MAX_SIZE_IN}
+              min={8}
+              max={36}
               step={0.1}
-              value={printedWidthIn}
-              onChange={(e) => updateWidth(Number(e.target.value))}
+              value={slicer.printedWidthIn}
+              onChange={(e) => slicer.updateWidth(Number(e.target.value))}
               style={{
                 width: "100%",
                 boxSizing: "border-box",
@@ -282,11 +68,11 @@ function App() {
             />
             <input
               type="range"
-              min={MIN_SIZE_IN}
-              max={MAX_SIZE_IN}
+              min={8}
+              max={36}
               step={0.5}
-              value={printedWidthIn}
-              onChange={(e) => updateWidth(Number(e.target.value))}
+              value={slicer.printedWidthIn}
+              onChange={(e) => slicer.updateWidth(Number(e.target.value))}
               style={{ width: "100%" }}
             />
           </div>
@@ -297,11 +83,11 @@ function App() {
             </label>
             <input
               type="number"
-              min={MIN_SIZE_IN}
-              max={MAX_SIZE_IN}
+              min={8}
+              max={36}
               step={0.1}
-              value={printedHeightIn}
-              onChange={(e) => updateHeight(Number(e.target.value))}
+              value={slicer.printedHeightIn}
+              onChange={(e) => slicer.updateHeight(Number(e.target.value))}
               style={{
                 width: "100%",
                 boxSizing: "border-box",
@@ -311,11 +97,11 @@ function App() {
             />
             <input
               type="range"
-              min={MIN_SIZE_IN}
-              max={MAX_SIZE_IN}
+              min={8}
+              max={36}
               step={0.5}
-              value={printedHeightIn}
-              onChange={(e) => updateHeight(Number(e.target.value))}
+              value={slicer.printedHeightIn}
+              onChange={(e) => slicer.updateHeight(Number(e.target.value))}
               style={{ width: "100%" }}
             />
           </div>
@@ -326,14 +112,14 @@ function App() {
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
-                opacity: imageAspectRatio ? 1 : 0.6,
+                opacity: slicer.imageAspectRatio ? 1 : 0.6,
               }}
             >
               <input
                 type="checkbox"
-                checked={maintainAspectRatio}
-                disabled={!imageAspectRatio}
-                onChange={handleAspectRatioToggle}
+                checked={slicer.maintainAspectRatio}
+                disabled={!slicer.imageAspectRatio}
+                onChange={slicer.handleAspectRatioToggle}
               />
               Maintain aspect ratio
             </label>
@@ -360,37 +146,24 @@ function App() {
                 marginBottom: "12px",
               }}
             >
-              <button
-                type="button"
-                onClick={() => setGridMode("none")}
-                style={{
-                  border: "none",
-                  borderRadius: "999px",
-                  padding: "8px 16px",
-                  cursor: "pointer",
-                  background: gridMode === "none" ? "#111827" : "transparent",
-                  color: gridMode === "none" ? "white" : "#111827",
-                  fontWeight: 700,
-                }}
-              >
-                None
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setGridMode("line")}
-                style={{
-                  border: "none",
-                  borderRadius: "999px",
-                  padding: "8px 16px",
-                  cursor: "pointer",
-                  background: gridMode === "line" ? "#111827" : "transparent",
-                  color: gridMode === "line" ? "white" : "#111827",
-                  fontWeight: 700,
-                }}
-              >
-                Line
-              </button>
+              {["none", "line", "dash", "corner"].map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => slicer.setGridMode(mode as typeof slicer.gridMode)}
+                  style={{
+                    border: "none",
+                    borderRadius: "999px",
+                    padding: "8px 16px",
+                    cursor: "pointer",
+                    background: slicer.gridMode === mode ? "#111827" : "transparent",
+                    color: slicer.gridMode === mode ? "white" : "#111827",
+                    fontWeight: 700,
+                  }}
+                >
+                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                </button>
+              ))}
             </div>
 
             <div style={{ marginBottom: "8px", fontWeight: 700 }}>Grid Color</div>
@@ -407,14 +180,14 @@ function App() {
             >
               <button
                 type="button"
-                onClick={() => setGridColor("black")}
+                onClick={() => slicer.setGridColor("black")}
                 style={{
                   border: "none",
                   borderRadius: "999px",
                   padding: "8px 16px",
                   cursor: "pointer",
-                  background: gridColor === "black" ? "#111827" : "transparent",
-                  color: gridColor === "black" ? "white" : "#111827",
+                  background: slicer.gridColor === "black" ? "#111827" : "transparent",
+                  color: slicer.gridColor === "black" ? "white" : "#111827",
                   fontWeight: 700,
                 }}
               >
@@ -423,17 +196,19 @@ function App() {
 
               <button
                 type="button"
-                onClick={() => setGridColor("white")}
+                onClick={() => slicer.setGridColor("white")}
                 style={{
                   border: "none",
                   borderRadius: "999px",
                   padding: "8px 16px",
                   cursor: "pointer",
-                  background: gridColor === "white" ? "white" : "transparent",
+                  background: slicer.gridColor === "white" ? "white" : "transparent",
                   color: "#111827",
                   fontWeight: 700,
                   boxShadow:
-                    gridColor === "white" ? "0 0 0 1px rgba(0,0,0,0.12) inset" : "none",
+                    slicer.gridColor === "white"
+                      ? "0 0 0 1px rgba(0,0,0,0.12) inset"
+                      : "none",
                 }}
               >
                 White
@@ -456,14 +231,14 @@ function App() {
                 <button
                   key={size}
                   type="button"
-                  onClick={() => setGridSizeIn(size as GridSize)}
+                  onClick={() => slicer.setGridSizeIn(size as typeof slicer.gridSizeIn)}
                   style={{
                     border: "none",
                     borderRadius: "999px",
                     padding: "8px 16px",
                     cursor: "pointer",
-                    background: gridSizeIn === size ? "#111827" : "transparent",
-                    color: gridSizeIn === size ? "white" : "#111827",
+                    background: slicer.gridSizeIn === size ? "#111827" : "transparent",
+                    color: slicer.gridSizeIn === size ? "white" : "#111827",
                     fontWeight: 700,
                   }}
                 >
@@ -495,14 +270,14 @@ function App() {
             >
               <button
                 type="button"
-                onClick={() => setSliceSize("8x10")}
+                onClick={() => slicer.setSliceSize("8x10")}
                 style={{
                   border: "none",
                   borderRadius: "999px",
                   padding: "8px 16px",
                   cursor: "pointer",
-                  background: sliceSize === "8x10" ? "#111827" : "transparent",
-                  color: sliceSize === "8x10" ? "white" : "#111827",
+                  background: slicer.sliceSize === "8x10" ? "#111827" : "transparent",
+                  color: slicer.sliceSize === "8x10" ? "white" : "#111827",
                   fontWeight: 700,
                 }}
               >
@@ -511,14 +286,14 @@ function App() {
 
               <button
                 type="button"
-                onClick={() => setSliceSize("8x10.5")}
+                onClick={() => slicer.setSliceSize("8x10.5")}
                 style={{
                   border: "none",
                   borderRadius: "999px",
                   padding: "8px 16px",
                   cursor: "pointer",
-                  background: sliceSize === "8x10.5" ? "#111827" : "transparent",
-                  color: sliceSize === "8x10.5" ? "white" : "#111827",
+                  background: slicer.sliceSize === "8x10.5" ? "#111827" : "transparent",
+                  color: slicer.sliceSize === "8x10.5" ? "white" : "#111827",
                   fontWeight: 700,
                 }}
               >
@@ -538,50 +313,52 @@ function App() {
           >
             <div style={{ fontWeight: 700, marginBottom: "8px" }}>Page Estimate</div>
             <div>
-              Estimated tiles: {sliceEstimate.cols} × {sliceEstimate.rows}
+              Estimated tiles: {slicer.sliceEstimate.cols} × {slicer.sliceEstimate.rows}
             </div>
-            <div>Estimated pages: {sliceEstimate.total}</div>
+            <div>Estimated pages: {slicer.sliceEstimate.total}</div>
           </div>
 
           <button
             type="button"
-            disabled={!imageUrl || isExporting}
-            onClick={handleExportPdf}
+            disabled={!slicer.imageUrl || slicer.isExporting}
+            onClick={slicer.handleExportPdf}
             style={{
               width: "100%",
               border: "none",
               borderRadius: "10px",
               padding: "12px 16px",
-              background: !imageUrl || isExporting ? "#9ca3af" : "#2563eb",
+              background:
+                !slicer.imageUrl || slicer.isExporting ? "#9ca3af" : "#2563eb",
               color: "white",
               fontWeight: 700,
-              cursor: !imageUrl || isExporting ? "not-allowed" : "pointer",
+              cursor:
+                !slicer.imageUrl || slicer.isExporting ? "not-allowed" : "pointer",
             }}
           >
-            {isExporting ? "Exporting PDF..." : "Export PDF"}
+            {slicer.isExporting ? "Exporting PDF..." : "Export PDF"}
           </button>
 
-          {exportMessage && (
+          {slicer.exportMessage && (
             <div style={{ marginTop: "12px", color: "#4b5563", fontSize: "14px" }}>
-              {exportMessage}
+              {slicer.exportMessage}
             </div>
           )}
         </aside>
 
         <PreviewPanel
-          imageUrl={imageUrl}
-          printedWidthIn={printedWidthIn}
-          printedHeightIn={printedHeightIn}
-          gridMode={gridMode}
-          gridColor={gridColor}
-          gridSizeIn={gridSizeIn}
-          sliceSize={sliceSize}
-          sliceEstimate={sliceEstimate}
-          previewStage={previewStage}
-          sourceSizeReport={sourceSizeReport}
-          sourcePixelWidth={sourcePixelWidth}
-          sourcePixelHeight={sourcePixelHeight}
-          exportDpi={EXPORT_DPI}
+          imageUrl={slicer.imageUrl}
+          printedWidthIn={slicer.printedWidthIn}
+          printedHeightIn={slicer.printedHeightIn}
+          gridMode={slicer.gridMode}
+          gridColor={slicer.gridColor}
+          gridSizeIn={slicer.gridSizeIn}
+          sliceSize={slicer.sliceSize}
+          sliceEstimate={slicer.sliceEstimate}
+          previewStage={slicer.previewStage}
+          sourceSizeReport={slicer.sourceSizeReport}
+          sourcePixelWidth={slicer.sourcePixelWidth}
+          sourcePixelHeight={slicer.sourcePixelHeight}
+          exportDpi={slicer.exportDpi}
         />
       </main>
     </div>

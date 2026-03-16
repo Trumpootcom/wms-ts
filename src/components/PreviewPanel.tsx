@@ -119,7 +119,7 @@ function PreviewPanel({
                         </div>
                     )}
 
-                    {gridMode === "line" && (
+                    {gridMode !== "none" && (
                         <div
                             style={{
                                 position: "absolute",
