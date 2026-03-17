@@ -4,6 +4,9 @@ import NumberWithSlider from "./ui/NumberWithSlider.tsx";
 import type { useSlicerState } from "../hooks/useSlicerState.ts";
 import GridModeIcon from "./ui/GridModeIcon.tsx";
 import { controlLabelStyle } from "./ui/uiStyles.ts";
+import ColorSwatchIcon from "./ui/ColorSwatchIcon.tsx";
+import LabeledSegmentedControl from "./ui/LabeledSegmentedControl";
+import SvgIcon from "./ui/SvgIcon";
 
 type ControlPanelProps = {
     slicer: ReturnType<typeof useSlicerState>;
@@ -14,7 +17,7 @@ function ControlPanel({ slicer }: ControlPanelProps) {
         <aside
             style={{
                 background: "#d1d5db",
-                padding: "16px",
+                padding: "5px",
                 minHeight: "100%",
                 boxSizing: "border-box",
                 overflowY: "auto",
@@ -22,14 +25,21 @@ function ControlPanel({ slicer }: ControlPanelProps) {
         >
             <h2 style={{ marginTop: 0 }}>Controls</h2>
 
-            <div style={{ marginBottom: "20px" }}>
-                <label style={{ display: "block", fontWeight: 700, marginBottom: "8px" }}>
-                    Upload Map
-                </label>
-                <input type="file" accept="image/*" onChange={slicer.handleFileUpload} />
-            </div>
 
-            <PanelSection title="Image Adjustments">
+            <PanelSection title="Image">
+                <div style={{ marginBottom: "8px" }}>
+                    <input type="file" accept="image/*" onChange={slicer.handleFileUpload} />
+                </div>
+
+                <LabeledSegmentedControl
+                    label="Image Adjustments"
+                    value="restore"
+                    onChange={() => slicer.resetImageAdjustments()}
+                    options={[
+                        { value: "restore", title: "↻" }
+
+                    ]}
+                />
                 <NumberWithSlider
                     label="Brightness"
                     value={slicer.imageAdjustments.brightness}
@@ -70,127 +80,28 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     onChange={(value) => slicer.updateImageAdjustment("gamma", value)}
                 />
 
-                <button
-                    type="button"
-                    onClick={slicer.resetImageAdjustments}
-                    style={{
-                        width: "100%",
-                        border: "1px solid #9ca3af",
-                        borderRadius: "10px",
-                        padding: "10px 14px",
-                        background: "#f9fafb",
-                        color: "#111827",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                    }}
-                >
-                    Reset Adjustments
-                </button>
             </PanelSection>
-            <NumberWithSlider
-                label="Print Wid (in)"
-                value={slicer.printedWidthIn}
-                min={8}
-                max={36}
-                onChange={slicer.updateWidth}
-            />
-
-            <NumberWithSlider
-                label="Print Ht (in)"
-                value={slicer.printedHeightIn}
-                min={8}
-                max={36}
-                onChange={slicer.updateHeight}
-            />
-            <div style={{ marginBottom: "20px" }}>
-                <label
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        opacity: slicer.imageAspectRatio ? 1 : 0.6,
-                    }}
-                >
-                    <input
-                        type="checkbox"
-                        checked={slicer.maintainAspectRatio}
-                        disabled={!slicer.imageAspectRatio}
-                        onChange={slicer.handleAspectRatioToggle}
-                    />
-                    Maintain aspect ratio
-                </label>
-            </div>
-
             <PanelSection title="Grid">
-
-                <div
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "12px",
-                        marginBottom: "12px",
-                    }}
-                >
-                    <div style={controlLabelStyle}>Type</div>
-
-                    <div
-                        style={{
-                            display: "flex",
-                            justifyContent: "flex-end",
-                            gap: "4px",
-                        }}
-                    >
-                        {(["none", "line", "dash", "corner"] as const).map((mode) => {
-                            const selected = slicer.gridMode === mode;
-
-                            return (
-                                <button
-                                    key={mode}
-                                    type="button"
-                                    title={
-                                        mode === "none"
-                                            ? "None"
-                                            : mode === "line"
-                                                ? "Line"
-                                                : mode === "dash"
-                                                    ? "Dash"
-                                                    : "Corner"
-                                    }
-                                    onClick={() => slicer.setGridMode(mode)}
-                                    style={{
-                                        padding: "4px",
-                                        border: selected ? "2px solid #1d4ed8" : "1px solid #9ca3af",
-                                        borderRadius: "8px",
-                                        background: selected ? "#dbeafe" : "#f3f4f6",
-                                        color: "#111827",
-                                        cursor: "pointer",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        flex: "0 0 auto",
-                                    }}
-                                >
-                                    <GridModeIcon mode={mode} size={20} />
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                <div style={{ marginBottom: "8px", fontWeight: 700 }}>Grid Color</div>
-
-                <SegmentedControl
-                    value={slicer.gridColor}
-                    onChange={slicer.setGridColor}
-                    marginBottom="12px"
-                    isLightOption={(value) => value === "white"}
+                <LabeledSegmentedControl
+                    label="Type"
+                    value={slicer.gridMode}
+                    onChange={(v) => slicer.setGridMode(v)}
                     options={[
-                        { value: "black", label: "Black" },
-                        { value: "white", label: "White" },
+                        { value: "none", icon: <SvgIcon name="gridNone" size={20} />, title: "None" },
+                        { value: "line", icon: <SvgIcon name="gridLine" size={20} />, title: "Line" },
+                        { value: "dash", icon: <SvgIcon name="gridDash" size={20} />, title: "Dash" },
+                        { value: "corner", icon: <SvgIcon name="gridCorner" size={20} />, title: "Corner" },
                     ]}
                 />
-
+                <LabeledSegmentedControl
+                    label="Color"
+                    value={slicer.gridColor}
+                    onChange={(v) => slicer.setGridColor(v)}
+                    options={[
+                        { value: "black", icon: <SvgIcon name="colorBlack" size={20} />, title: "Black" },
+                        { value: "white", icon: <SvgIcon name="colorWhite" size={20} />, title: "White" },
+                    ]}
+                />
                 <NumberWithSlider
                     label="Size"
                     value={slicer.gridSizeIn}
@@ -202,25 +113,50 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                 />
             </PanelSection>
 
-            <PanelSection title="Slice Size">
-                <SegmentedControl
+            <PanelSection title="Output">
+                <NumberWithSlider
+                    label="Width"
+                    value={slicer.printedWidthIn}
+                    min={8}
+                    max={36}
+                    onChange={slicer.updateWidth}
+                />
+
+                <NumberWithSlider
+                    label="Height"
+                    value={slicer.printedHeightIn}
+                    min={8}
+                    max={36}
+                    onChange={slicer.updateHeight}
+                />
+                <div style={{ marginBottom: "20px" }}>
+                    <label
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            opacity: slicer.imageAspectRatio ? 1 : 0.6,
+                        }}
+                    >
+                        <input
+                            type="checkbox"
+                            checked={slicer.maintainAspectRatio}
+                            disabled={!slicer.imageAspectRatio}
+                            onChange={slicer.handleAspectRatioToggle}
+                        />
+                        Maintain aspect ratio
+                    </label>
+                </div>
+                <LabeledSegmentedControl
+                    label="Slicer"
                     value={slicer.sliceSize}
-                    onChange={slicer.setSliceSize}
+                    onChange={(v) => slicer.setSliceSize(v)}
                     options={[
-                        { value: "8x10", label: "8 × 10" },
-                        { value: "8x10.5", label: "8 × 10.5" },
+                        { value: "8x10", title: "8 x 10" },
+                        { value: "8x10.5", title: "8 x 10.5" },
                     ]}
                 />
             </PanelSection>
-
-            <PanelSection title="Page Estimate">
-                <div>
-                    Estimated tiles: {slicer.sliceEstimate.cols} ×{" "}
-                    {slicer.sliceEstimate.rows}
-                </div>
-                <div>Estimated pages: {slicer.sliceEstimate.total}</div>
-            </PanelSection>
-
             <button
                 type="button"
                 disabled={!slicer.imageUrl || slicer.isExporting}

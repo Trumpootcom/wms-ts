@@ -110,8 +110,6 @@ function PreviewPanel({
                 >
                     <div
                         style={{
-                            width: "100%",
-                            height: "100%",
                             maxWidth: `${previewStage.width*3}px`,
                             maxHeight: `${previewStage.height*3}px`,
                             aspectRatio: `${printedWidthIn} / ${printedHeightIn}`,
