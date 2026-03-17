@@ -3,6 +3,7 @@ import SegmentedControl from "./ui/SegmentedControl.tsx";
 import NumberWithSlider from "./ui/NumberWithSlider.tsx";
 import type { useSlicerState } from "../hooks/useSlicerState.ts";
 import GridModeIcon from "./ui/GridModeIcon.tsx";
+import { controlLabelStyle } from "./ui/uiStyles.ts";
 
 type ControlPanelProps = {
     slicer: ReturnType<typeof useSlicerState>;
@@ -121,33 +122,62 @@ function ControlPanel({ slicer }: ControlPanelProps) {
             </div>
 
             <PanelSection title="Grid">
-                <SegmentedControl
-                    value={slicer.gridMode}
-                    onChange={slicer.setGridMode}
-                    marginBottom="12px"
-                    options={[
-                        {
-                            value: "none",
-                            label: <GridModeIcon mode="none" />,
-                            title: "None",
-                        },
-                        {
-                            value: "line",
-                            label: <GridModeIcon mode="line" />,
-                            title: "Line",
-                        },
-                        {
-                            value: "dash",
-                            label: <GridModeIcon mode="dash" />,
-                            title: "Dash",
-                        },
-                        {
-                            value: "corner",
-                            label: <GridModeIcon mode="corner" />,
-                            title: "Corner",
-                        },
-                    ]}
-                />
+
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "12px",
+                        marginBottom: "12px",
+                    }}
+                >
+                    <div style={controlLabelStyle}>Type</div>
+
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            gap: "4px",
+                        }}
+                    >
+                        {(["none", "line", "dash", "corner"] as const).map((mode) => {
+                            const selected = slicer.gridMode === mode;
+
+                            return (
+                                <button
+                                    key={mode}
+                                    type="button"
+                                    title={
+                                        mode === "none"
+                                            ? "None"
+                                            : mode === "line"
+                                                ? "Line"
+                                                : mode === "dash"
+                                                    ? "Dash"
+                                                    : "Corner"
+                                    }
+                                    onClick={() => slicer.setGridMode(mode)}
+                                    style={{
+                                        padding: "4px",
+                                        border: selected ? "2px solid #1d4ed8" : "1px solid #9ca3af",
+                                        borderRadius: "8px",
+                                        background: selected ? "#dbeafe" : "#f3f4f6",
+                                        color: "#111827",
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        flex: "0 0 auto",
+                                    }}
+                                >
+                                    <GridModeIcon mode={mode} size={20} />
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
                 <div style={{ marginBottom: "8px", fontWeight: 700 }}>Grid Color</div>
 
                 <SegmentedControl
@@ -161,18 +191,14 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     ]}
                 />
 
-                <div style={{ marginBottom: "8px", fontWeight: 700 }}>Grid Size (in)</div>
-
-                <SegmentedControl
+                <NumberWithSlider
+                    label="Size"
                     value={slicer.gridSizeIn}
+                    min={0.75}
+                    max={1.5}
+                    stepInput={0.125}
+                    stepSlider={0.125}
                     onChange={slicer.setGridSizeIn}
-                    wrap
-                    options={[
-                        { value: 0.75, label: '0.75"' },
-                        { value: 1, label: '1"' },
-                        { value: 1.25, label: '1.25"' },
-                        { value: 1.5, label: '1.5"' },
-                    ]}
                 />
             </PanelSection>
 

@@ -1,3 +1,5 @@
+import { controlLabelStyle } from "./uiStyles.ts";
+
 type NumberWithSliderProps = {
     label: string;
     value: number;
@@ -18,27 +20,26 @@ function NumberWithSlider({
     onChange,
 }: NumberWithSliderProps) {
     return (
+    <div
+        style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            marginBottom: "8px",
+        }}
+    >
+        <div style={controlLabelStyle}>{label}</div>
+
         <div
             style={{
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "flex-end",
                 gap: "10px",
-                marginBottom: "8px",
+                flex: "0 0 180px",
             }}
         >
-            {/* LABEL */}
-            <div
-                style={{
-                    width: "95px",
-                    fontWeight: 700,
-                    fontSize: "14px",
-                    textAlign: "left",
-                }}
-            >
-                {label}
-            </div>
-
-            {/* SLIDER */}
             <input
                 type="range"
                 min={min}
@@ -48,10 +49,10 @@ function NumberWithSlider({
                 onChange={(e) => onChange(Number(e.target.value))}
                 style={{
                     flex: 1,
+                    minWidth: 0,
                 }}
             />
 
-            {/* NUMBER */}
             <input
                 type="number"
                 min={min}
@@ -60,17 +61,19 @@ function NumberWithSlider({
                 value={value}
                 onChange={(e) => onChange(Number(e.target.value))}
                 style={{
-
                     width: "44px",
                     padding: "3px 4px",
                     textAlign: "right",
                     border: "1px solid #9ca3af",
                     borderRadius: "4px",
-                    background: "#f9fafb"
+                    background: "#f9fafb",
                 }}
             />
         </div>
-    );
+    </div>
+
+
+);
 }
 
 export default NumberWithSlider;
