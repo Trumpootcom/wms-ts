@@ -23,11 +23,11 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                 overflowY: "auto",
             }}
         >
-            <h2 style={{ marginTop: 0 }}>Controls</h2>
+            <h2 style={{ marginTop: 0, marginBottom: "5px" }}>Controls</h2>
 
 
             <PanelSection title="Image">
-                <div style={{ marginBottom: "8px" }}>
+                <div style={{ marginBottom: "5px" }}>
                     <input type="file" accept="image/*" onChange={slicer.handleFileUpload} />
                 </div>
 

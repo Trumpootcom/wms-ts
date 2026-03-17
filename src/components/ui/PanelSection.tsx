@@ -20,6 +20,7 @@ function PanelSection({
         borderRadius: "8px",
         background: "#e8eaec",
         overflow: "hidden",
+        border: "1px solid #4d525c80",
       }}
     >
       {/* CONTENT */}
@@ -61,8 +62,8 @@ function PanelSection({
           borderRadius: "8px",
           pointerEvents: "none",
           zIndex: 2,
-          boxShadow:
-            "inset 1px 1px 2px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.85)",
+          /*          boxShadow: "inset 1px 1px 2px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.85)",
+            */
         }}
       />
     </div>
