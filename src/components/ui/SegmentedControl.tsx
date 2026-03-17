@@ -1,71 +1,74 @@
 import type { ReactNode } from "react";
 
-type Option<T extends string | number> = {
-  value: T;
-  label: ReactNode;
+type SegmentedControlOption<T extends string | number> = {
+    value: T;
+    label: ReactNode;
+    title?: string;
 };
 
 type SegmentedControlProps<T extends string | number> = {
-  value: T;
-  options: Option<T>[];
-  onChange: (value: T) => void;
-  marginBottom?: string;
-  wrap?: boolean;
-  isLightOption?: (value: T) => boolean;
+    value: T;
+    onChange: (value: T) => void;
+    options: SegmentedControlOption<T>[];
+    wrap?: boolean;
+    marginBottom?: string;
+    isLightOption?: (value: T) => boolean;
 };
 
 function SegmentedControl<T extends string | number>({
-  value,
-  options,
-  onChange,
-  marginBottom = "0",
-  wrap = false,
-  isLightOption,
+    value,
+    onChange,
+    options,
+    wrap = false,
+    marginBottom = "0",
+    isLightOption,
 }: SegmentedControlProps<T>) {
-  return (
-    <div
-      style={{
-        display: "inline-flex",
-        flexWrap: wrap ? "wrap" : "nowrap",
-        background: "#e5e7eb",
-        borderRadius: "999px",
-        padding: "4px",
-        gap: "4px",
-        marginBottom,
-      }}
-    >
-      {options.map((option) => {
-        const selected = option.value === value;
-        const lightSelected = selected && isLightOption?.(option.value);
-
-        return (
-          <button
-            key={String(option.value)}
-            type="button"
-            onClick={() => onChange(option.value)}
+    return (
+        <div
             style={{
-              border: "none",
-              borderRadius: "999px",
-              padding: "8px 16px",
-              cursor: "pointer",
-              background: selected
-                ? lightSelected
-                  ? "white"
-                  : "#111827"
-                : "transparent",
-              color: selected && !lightSelected ? "white" : "#111827",
-              fontWeight: 700,
-              boxShadow: lightSelected
-                ? "0 0 0 1px rgba(0,0,0,0.12) inset"
-                : "none",
+                display: "flex",
+                flexWrap: wrap ? "wrap" : "nowrap",
+                gap: "8px",
+                marginBottom,
             }}
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
-  );
+        >
+            {options.map((option) => {
+                const selected = option.value === value;
+                const lightOption = isLightOption?.(option.value) ?? false;
+
+                return (
+                    <button
+                        key={String(option.value)}
+                        type="button"
+                        title={option.title}
+                        onClick={() => onChange(option.value)}
+                        style={{
+                            flex: wrap ? "0 0 auto" : 1,
+                            minWidth: wrap ? "72px" : 0,
+                            border: selected ? "2px solid #1d4ed8" : "1px solid #9ca3af",
+                            borderRadius: "10px",
+                            padding: "10px 12px",
+                            background: selected
+                                ? "#dbeafe"
+                                : lightOption
+                                  ? "#ffffff"
+                                  : "#f3f4f6",
+                            color: "#111827",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            textAlign: "center",
+                            lineHeight: 1.1,
+                        }}
+                    >
+                        {option.label}
+                    </button>
+                );
+            })}
+        </div>
+    );
 }
 
 export default SegmentedControl;

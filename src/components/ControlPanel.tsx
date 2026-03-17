@@ -2,6 +2,7 @@ import PanelSection from "./ui/PanelSection.tsx";
 import SegmentedControl from "./ui/SegmentedControl.tsx";
 import NumberWithSlider from "./ui/NumberWithSlider.tsx";
 import type { useSlicerState } from "../hooks/useSlicerState.ts";
+import GridModeIcon from "./ui/GridModeIcon.tsx";
 
 type ControlPanelProps = {
     slicer: ReturnType<typeof useSlicerState>;
@@ -125,13 +126,28 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     onChange={slicer.setGridMode}
                     marginBottom="12px"
                     options={[
-                        { value: "none", label: "None" },
-                        { value: "line", label: "Line" },
-                        { value: "dash", label: "Dash" },
-                        { value: "corner", label: "Corner" },
+                        {
+                            value: "none",
+                            label: <GridModeIcon mode="none" />,
+                            title: "None",
+                        },
+                        {
+                            value: "line",
+                            label: <GridModeIcon mode="line" />,
+                            title: "Line",
+                        },
+                        {
+                            value: "dash",
+                            label: <GridModeIcon mode="dash" />,
+                            title: "Dash",
+                        },
+                        {
+                            value: "corner",
+                            label: <GridModeIcon mode="corner" />,
+                            title: "Corner",
+                        },
                     ]}
                 />
-
                 <div style={{ marginBottom: "8px", fontWeight: 700 }}>Grid Color</div>
 
                 <SegmentedControl

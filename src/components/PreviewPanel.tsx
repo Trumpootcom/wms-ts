@@ -1,10 +1,10 @@
 import type {
-  GridColor,
-  GridMode,
-  GridSize,
-  ImageAdjustments,
-  SliceEstimate,
-  SliceSize,
+    GridColor,
+    GridMode,
+    GridSize,
+    ImageAdjustments,
+    SliceEstimate,
+    SliceSize,
 } from "../slicer/types.ts";
 import { formatInches, formatPercent } from "../utils/format.ts";
 
@@ -67,11 +67,13 @@ function PreviewPanel({
 
     const gridModeLabel = gridMode.charAt(0).toUpperCase() + gridMode.slice(1);
     const sliceSizeLabel = sliceSize === "8x10" ? "8 × 10" : "8 × 10.5";
+
     const imageFilter = `
         brightness(${imageAdjustments.brightness}%)
         contrast(${imageAdjustments.contrast}%)
         saturate(${imageAdjustments.saturation}%)
     `;
+
     return (
         <section
             style={{
@@ -88,110 +90,128 @@ function PreviewPanel({
             <div
                 style={{
                     flex: 1,
+                    minHeight: 0,
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
-                    overflow: "auto",
+                    overflow: "hidden",
                 }}
             >
                 <div
                     style={{
-                        width: `${previewStage.width}px`,
-                        height: `${previewStage.height}px`,
-                        position: "relative",
-                        border: "1px solid #9ca3af",
-                        background: "#e5e7eb",
-                        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                        overflow: "hidden",
+                        width: "100%",
+                        height: "100%",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        padding: "12px",
+                        boxSizing: "border-box",
                     }}
                 >
-                    {imageUrl ? (
-                        <img
-                            src={imageUrl}
-                            alt="Uploaded map preview"
-                            style={{
-                                position: "absolute",
-                                inset: 0,
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "fill",
-                                display: "block",
-                                filter: imageFilter,
-                            }}
-                        />
-                    ) : (
-                        <div
-                            style={{
-                                position: "absolute",
-                                inset: 0,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "#4b5563",
-                                fontSize: "18px",
-                                background:
-                                    "linear-gradient(135deg, rgba(255,255,255,0.55), rgba(0,0,0,0.04))",
-                            }}
-                        >
-                            No image loaded
-                        </div>
-                    )}
+                    <div
+                        style={{
+                            width: "100%",
+                            height: "100%",
+                            maxWidth: `${previewStage.width*3}px`,
+                            maxHeight: `${previewStage.height*3}px`,
+                            aspectRatio: `${printedWidthIn} / ${printedHeightIn}`,
+                            position: "relative",
+                            border: "1px solid #9ca3af",
+                            background: "#e5e7eb",
+                            boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                            overflow: "hidden",
+                            flexShrink: 1,
+                        }}
+                    >
+                        {imageUrl ? (
+                            <img
+                                src={imageUrl}
+                                alt="Uploaded map preview"
+                                style={{
+                                    position: "absolute",
+                                    inset: 0,
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "fill",
+                                    display: "block",
+                                    filter: imageFilter,
+                                }}
+                            />
+                        ) : (
+                            <div
+                                style={{
+                                    position: "absolute",
+                                    inset: 0,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    color: "#4b5563",
+                                    fontSize: "18px",
+                                    background:
+                                        "linear-gradient(135deg, rgba(255,255,255,0.55), rgba(0,0,0,0.04))",
+                                }}
+                            >
+                                No image loaded
+                            </div>
+                        )}
 
-                    {gridMode !== "none" && (
-                        <div
-                            style={{
-                                position: "absolute",
-                                inset: 0,
-                                pointerEvents: "none",
-                                backgroundImage: `
+                        {gridMode !== "none" && (
+                            <div
+                                style={{
+                                    position: "absolute",
+                                    inset: 0,
+                                    pointerEvents: "none",
+                                    backgroundImage: `
                   linear-gradient(to right, ${previewGridLineColor} 1px, transparent 1px),
                   linear-gradient(to bottom, ${previewGridLineColor} 1px, transparent 1px)
                 `,
-                                backgroundSize: `${(gridSizeIn * 100) / printedWidthIn}% ${(gridSizeIn * 100) / printedHeightIn}%`,
-                            }}
-                        />
-                    )}
-
-                    {sliceEstimate.tiles.map((tile) => {
-                        const leftPct = (tile.xIn / printedWidthIn) * 100;
-                        const topPct = (tile.yIn / printedHeightIn) * 100;
-                        const widthPct = (tile.widthIn / printedWidthIn) * 100;
-                        const heightPct = (tile.heightIn / printedHeightIn) * 100;
-
-                        return (
-                            <div
-                                key={tile.label}
-                                style={{
-                                    position: "absolute",
-                                    left: `${leftPct}%`,
-                                    top: `${topPct}%`,
-                                    width: `${widthPct}%`,
-                                    height: `${heightPct}%`,
-                                    border: `2px solid ${sliceLineColor}`,
-                                    boxSizing: "border-box",
-                                    pointerEvents: "none",
+                                    backgroundSize: `${(gridSizeIn / printedWidthIn) * 100}% ${(gridSizeIn / printedHeightIn) * 100}%`,
+                                    backgroundPosition: "0 0, 0 0",
                                 }}
-                            >
+                            />
+                        )}
+
+                        {sliceEstimate.tiles.map((tile) => {
+                            const leftPct = (tile.xIn / printedWidthIn) * 100;
+                            const topPct = (tile.yIn / printedHeightIn) * 100;
+                            const widthPct = (tile.widthIn / printedWidthIn) * 100;
+                            const heightPct = (tile.heightIn / printedHeightIn) * 100;
+
+                            return (
                                 <div
+                                    key={tile.label}
                                     style={{
                                         position: "absolute",
-                                        top: "6px",
-                                        left: "6px",
-                                        padding: "2px 6px",
-                                        borderRadius: "999px",
-                                        background: labelBgColor,
-                                        color: labelTextColor,
-                                        fontSize: "12px",
-                                        fontWeight: 700,
-                                        lineHeight: 1.2,
-                                        boxShadow: "0 1px 2px rgba(0,0,0,0.18)",
+                                        left: `${leftPct}%`,
+                                        top: `${topPct}%`,
+                                        width: `${widthPct}%`,
+                                        height: `${heightPct}%`,
+                                        border: `2px solid ${sliceLineColor}`,
+                                        boxSizing: "border-box",
+                                        pointerEvents: "none",
                                     }}
                                 >
-                                    {tile.label}
+                                    <div
+                                        style={{
+                                            position: "absolute",
+                                            top: "6px",
+                                            left: "6px",
+                                            padding: "2px 6px",
+                                            borderRadius: "999px",
+                                            background: labelBgColor,
+                                            color: labelTextColor,
+                                            fontSize: "12px",
+                                            fontWeight: 700,
+                                            lineHeight: 1.2,
+                                            boxShadow: "0 1px 2px rgba(0,0,0,0.18)",
+                                        }}
+                                    >
+                                        {tile.label}
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
