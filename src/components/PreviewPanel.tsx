@@ -7,6 +7,7 @@ import type {
     SliceSize,
 } from "../slicer/types.ts";
 import { formatInches, formatPercent } from "../utils/format.ts";
+import SvgGridLayer from "./ui/SvgGridLayer";
 
 type SourceSizeReport = {
     sourceWidthIn: number;
@@ -161,7 +162,7 @@ function PreviewPanel({
                                     filter: imageFilter,
                                 }}
                             />
-
+                            {/* Grid overlay 
                             {gridMode !== "none" && (
                                 <div
                                     style={{
@@ -177,7 +178,14 @@ function PreviewPanel({
                                     }}
                                 />
                             )}
-
+*/}
+                            <SvgGridLayer
+                                printedWidthIn={printedWidthIn}
+                                printedHeightIn={printedHeightIn}
+                                gridMode={gridMode}
+                                gridColor={gridColor}
+                                gridSizeIn={gridSizeIn}
+                            />
                             <div
                                 style={{
                                     position: "absolute",
