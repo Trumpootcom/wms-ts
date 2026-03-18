@@ -61,6 +61,7 @@ function App() {
           printedWidthIn={slicer.printedWidthIn}
           printedHeightIn={slicer.printedHeightIn}
           gridMode={slicer.gridMode}
+          gridRotation={slicer.gridRotation}
           gridColor={slicer.gridColor}
           gridSizeIn={slicer.gridSizeIn}
           sliceSize={slicer.sliceSize}

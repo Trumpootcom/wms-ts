@@ -1,5 +1,5 @@
 export type GridColor = "black" | "white";
-export type GridMode = "none" | "line";
+export type GridMode = "none" | "line" | "dash" | "corner" | "iso";
 export type SliceSize = "8x10" | "8x10.5";
 export type GridSize = 0.75 | 1 | 1.25 | 1.5;
 

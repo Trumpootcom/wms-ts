@@ -1,10 +1,10 @@
-// src/components/ui/SvgGridLayer.tsx
 import type { GridColor, GridMode, GridSize } from "../../slicer/types.ts";
 
 type SvgGridLayerProps = {
     printedWidthIn: number;
     printedHeightIn: number;
     gridMode: GridMode;
+    gridRotation: number;
     gridColor: GridColor;
     gridSizeIn: GridSize;
 };
@@ -30,6 +30,7 @@ function SvgGridLayer({
     printedWidthIn,
     printedHeightIn,
     gridMode,
+    gridRotation,
     gridColor,
     gridSizeIn,
 }: SvgGridLayerProps) {
@@ -38,25 +39,22 @@ function SvgGridLayer({
     const stroke =
         gridColor === "black" ? "rgba(0,0,0,1)" : "rgba(255,255,255,1)";
 
-    const verticals = getGridPositions(0, printedWidthIn, gridSizeIn);
-    const horizontals = getGridPositions(0, printedHeightIn, gridSizeIn);
-
     const strokeWidth = gridMode === "line" ? 0.05 : 0.05;
 
     let strokeDasharray: string | undefined;
     if (gridMode === "dash") {
         strokeDasharray = [
-            3/32 * gridSizeIn,
-            1/16 * gridSizeIn,
-            2/16 * gridSizeIn,
-            1/16 * gridSizeIn,
-            2/16 * gridSizeIn,
-            1/16 * gridSizeIn,
-            2/16 * gridSizeIn,
-            1/16 * gridSizeIn,
-            2/16 * gridSizeIn,
-            1/16 * gridSizeIn,
-            3/32 * gridSizeIn,
+            3 / 32 * gridSizeIn,
+            1 / 16 * gridSizeIn,
+            2 / 16 * gridSizeIn,
+            1 / 16 * gridSizeIn,
+            2 / 16 * gridSizeIn,
+            1 / 16 * gridSizeIn,
+            2 / 16 * gridSizeIn,
+            1 / 16 * gridSizeIn,
+            2 / 16 * gridSizeIn,
+            1 / 16 * gridSizeIn,
+            3 / 32 * gridSizeIn,
             0,
         ].join(" ");
     } else if (gridMode === "corner") {
@@ -66,6 +64,42 @@ function SvgGridLayer({
             0.125 * gridSizeIn,
             0,
         ].join(" ");
+    }
+
+    const verticals = getGridPositions(0, printedWidthIn, gridSizeIn);
+    const horizontals = getGridPositions(0, printedHeightIn, gridSizeIn);
+
+    const tan30 = Math.tan(Math.PI / 6);
+
+    const isoLines: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
+
+    if (gridMode === "iso") {
+        const dx = gridSizeIn;
+        const dy = gridSizeIn * tan30;
+
+        // Family 1: slope +tan(30)
+        for (let startX = -printedHeightIn / tan30; startX <= printedWidthIn; startX += dx) {
+            isoLines.push({
+                x1: startX,
+                y1: 0,
+                x2: startX + printedHeightIn / tan30,
+                y2: printedHeightIn,
+            });
+        }
+
+        // Family 2: slope -tan(30)
+        for (let startX = 0; startX <= printedWidthIn + printedHeightIn / tan30; startX += dx) {
+            isoLines.push({
+                x1: startX,
+                y1: 0,
+                x2: startX - printedHeightIn / tan30,
+                y2: printedHeightIn,
+            });
+        }
+
+        // Optional extra pass to tighten apparent spacing vertically a bit
+        // If you want the diamonds denser/lighter later, this is the knob:
+        void dy;
     }
 
     return (
@@ -81,38 +115,59 @@ function SvgGridLayer({
                 overflow: "hidden",
             }}
         >
-            {verticals.map((x, index) => (
-                <line
-                    key={`v-${index}`}
-                    x1={x}
-                    y1={0}
-                    x2={x}
-                    y2={printedHeightIn}
-                    stroke={stroke}
-                    strokeWidth={strokeWidth}
-                    strokeDasharray={strokeDasharray}
-//                    vectorEffect="non-scaling-stroke"
-                    shapeRendering="crispEdges"
-                    strokeLinecap="butt"
-                />
-            ))}
+            <g
+                transform={`rotate(${gridRotation} ${printedWidthIn / 2} ${printedHeightIn / 2})`}
+            >
+            {gridMode === "iso" ? (
+                isoLines.map((line, index) => (
+                    <line
+                        key={`iso-${index}`}
+                        x1={line.x1}
+                        y1={line.y1}
+                        x2={line.x2}
+                        y2={line.y2}
+                        stroke={stroke}
+                        strokeWidth={2}
+                        vectorEffect="non-scaling-stroke"
+                        shapeRendering="crispEdges"
+                        strokeLinecap="butt"
+                    />
+                ))
+            ) : (
+                <>
+                    {verticals.map((x, index) => (
+                        <line
+                            key={`v-${index}`}
+                            x1={x}
+                            y1={0}
+                            x2={x}
+                            y2={printedHeightIn}
+                            stroke={stroke}
+                            strokeWidth={strokeWidth}
+                            strokeDasharray={strokeDasharray}
+                            shapeRendering="crispEdges"
+                            strokeLinecap="butt"
+                        />
+                    ))}
 
-            {horizontals.map((y, index) => (
-                <line
-                    key={`h-${index}`}
-                    x1={0}
-                    y1={y}
-                    x2={printedWidthIn}
-                    y2={y}
-                    stroke={stroke}
-                    strokeWidth={strokeWidth}
-                    strokeDasharray={strokeDasharray}
-//                    vectorEffect="non-scaling-stroke"
-                    shapeRendering="crispEdges"
-                    strokeLinecap="butt"
-                />
-            ))}
-        </svg>
+                    {horizontals.map((y, index) => (
+                        <line
+                            key={`h-${index}`}
+                            x1={0}
+                            y1={y}
+                            x2={printedWidthIn}
+                            y2={y}
+                            stroke={stroke}
+                            strokeWidth={strokeWidth}
+                            strokeDasharray={strokeDasharray}
+                            shapeRendering="crispEdges"
+                            strokeLinecap="butt"
+                        />
+                    ))}
+                </>
+            )}
+        </g>
+        </svg >
     );
 }
 
