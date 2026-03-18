@@ -18,7 +18,7 @@ function ControlPanel({ slicer }: ControlPanelProps) {
             style={{
                 background: "#d1d5db",
                 padding: "5px",
-                minHeight: "100%",
+                height: "100%",
                 boxSizing: "border-box",
                 overflowY: "auto",
             }}

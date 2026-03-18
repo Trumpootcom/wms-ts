@@ -51,7 +51,7 @@ function PreviewPanel({
     exportDpi,
     imageAdjustments,
 }: PreviewPanelProps) {
-    const infoPaneHeight = 132;
+    const infoPaneHeight = 170;
 
     const previewGridLineColor =
         gridColor === "black" ? "rgba(0,0,0,0.65)" : "rgba(255,255,255,0.85)";
@@ -75,6 +75,9 @@ function PreviewPanel({
 
     const stageWidth = Math.max(previewStage.width, 1);
     const stageHeight = Math.max(previewStage.height, 1);
+
+    const gridWidthCount = printedWidthIn / gridSizeIn;
+    const gridHeightCount = printedHeightIn / gridSizeIn;
 
     let frameWidthPx = stageWidth;
     let frameHeightPx = frameWidthPx / stageAspect;
@@ -112,13 +115,7 @@ function PreviewPanel({
                 overflow: "hidden",
             }}
         >
-            <h2
-                style={{
-                    margin: "12px",
-                }}
-            >
-                Preview
-            </h2>
+            <h2 style={{ margin: "12px" }}>Preview</h2>
 
             <div
                 style={{
@@ -132,109 +129,93 @@ function PreviewPanel({
             >
                 <div
                     style={{
-                        width: "100%",
-                        height: "100%",
-                        minWidth: 0,
-                        minHeight: 0,
-                        display: "grid",
-                        placeItems: "center",
+                        width: `${frameWidthPx}px`,
+                        height: `${frameHeightPx}px`,
+                        position: "relative",
+                        border: "1px solid #9ca3af",
+                        background: "#e5e7eb",
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
                         overflow: "hidden",
+                        flexShrink: 0,
                     }}
                 >
-                    <div
-                        style={{
-                            width: `${frameWidthPx}px`,
-                            height: `${frameHeightPx}px`,
-                            position: "relative",
-                            border: "1px solid #9ca3af",
-                            background: "#e5e7eb",
-                            boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                            overflow: "hidden",
-                            flexShrink: 0,
-                        }}
-                    >
-                        {imageUrl ? (
-                            <div
+                    {imageUrl ? (
+                        <div
+                            style={{
+                                position: "absolute",
+                                left: `${imageBoxLeftPx}px`,
+                                top: `${imageBoxTopPx}px`,
+                                width: `${imageBoxWidthPx}px`,
+                                height: `${imageBoxHeightPx}px`,
+                                overflow: "hidden",
+                            }}
+                        >
+                            <img
+                                src={imageUrl}
+                                alt="Uploaded map preview"
                                 style={{
-                                    position: "absolute",
-                                    left: `${imageBoxLeftPx}px`,
-                                    top: `${imageBoxTopPx}px`,
-                                    width: `${imageBoxWidthPx}px`,
-                                    height: `${imageBoxHeightPx}px`,
-                                    overflow: "hidden",
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "fill",
+                                    display: "block",
+                                    filter: imageFilter,
                                 }}
-                            >
-                                <img
-                                    src={imageUrl}
-                                    alt="Uploaded map preview"
-                                    style={{
-                                        width: "100%",
-                                        height: "100%",
-                                        objectFit: "fill",
-                                        display: "block",
-                                        filter: imageFilter,
-                                    }}
-                                />
+                            />
 
-                                {gridMode !== "none" && (
-                                    <div
-                                        style={{
-                                            position: "absolute",
-                                            inset: 0,
-                                            pointerEvents: "none",
-                                            backgroundImage: `
-                                                linear-gradient(to right, ${previewGridLineColor} 1px, transparent 1px),
-                                                linear-gradient(to bottom, ${previewGridLineColor} 1px, transparent 1px)
-                                            `,
-                                            backgroundSize: `${(gridSizeIn / printedWidthIn) * 100}% ${(gridSizeIn / printedHeightIn) * 100}%`,
-                                            backgroundPosition: "0 0, 0 0",
-                                        }}
-                                    />
-                                )}
-
+                            {gridMode !== "none" && (
                                 <div
                                     style={{
                                         position: "absolute",
                                         inset: 0,
                                         pointerEvents: "none",
-                                        boxSizing: "border-box",
-                                        border: `2px solid ${sliceLineColor}`,
                                         backgroundImage: `
-                                            linear-gradient(to right, ${sliceLineColor} 2px, transparent 2px),
-                                            linear-gradient(to bottom, ${sliceLineColor} 2px, transparent 2px)
+                                            linear-gradient(to right, ${previewGridLineColor} 1px, transparent 1px),
+                                            linear-gradient(to bottom, ${previewGridLineColor} 1px, transparent 1px)
                                         `,
-                                        backgroundSize: `${(8 / printedWidthIn) * 100}% ${((sliceSize === "8x10" ? 10 : 10.5) / printedHeightIn) * 100}%`,
+                                        backgroundSize: `${(gridSizeIn / printedWidthIn) * 100}% ${(gridSizeIn / printedHeightIn) * 100}%`,
                                         backgroundPosition: "0 0, 0 0",
-                                        backgroundRepeat: "repeat",
                                     }}
                                 />
-                            </div>
-                        ) : (
+                            )}
+
                             <div
                                 style={{
                                     position: "absolute",
                                     inset: 0,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    color: "#4b5563",
-                                    fontSize: "18px",
-                                    background:
-                                        "linear-gradient(135deg, rgba(255,255,255,0.55), rgba(0,0,0,0.04))",
+                                    pointerEvents: "none",
+                                    boxSizing: "border-box",
+                                    border: `2px solid ${sliceLineColor}`,
+                                    backgroundImage: `
+                                        linear-gradient(to right, ${sliceLineColor} 2px, transparent 2px),
+                                        linear-gradient(to bottom, ${sliceLineColor} 2px, transparent 2px)
+                                    `,
+                                    backgroundSize: `${(8 / printedWidthIn) * 100}% ${((sliceSize === "8x10" ? 10 : 10.5) / printedHeightIn) * 100}%`,
+                                    backgroundPosition: "0 0, 0 0",
+                                    backgroundRepeat: "repeat",
                                 }}
-                            >
-                                No image loaded
-                            </div>
-                        )}
-                    </div>
+                            />
+                        </div>
+                    ) : (
+                        <div
+                            style={{
+                                position: "absolute",
+                                inset: 0,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "#4b5563",
+                                fontSize: "18px",
+                                background:
+                                    "linear-gradient(135deg, rgba(255,255,255,0.55), rgba(0,0,0,0.04))",
+                            }}
+                        >
+                            No image loaded
+                        </div>
+                    )}
                 </div>
             </div>
 
-            <div
-                style={{
-                    background: "#d1d5db",
-                }}
-            />
+            <div style={{ background: "#d1d5db" }} />
 
             <div
                 style={{
@@ -245,49 +226,83 @@ function PreviewPanel({
                     background: "#e5e7eb",
                     padding: "10px",
                     boxSizing: "border-box",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr 1fr",
+                    gap: "16px",
                 }}
             >
-                {sourcePixelWidth && sourcePixelHeight && (
-                    <div>
-                        Source pixels: {sourcePixelWidth} × {sourcePixelHeight}
+                <div>
+                    <div style={{ fontWeight: 700, marginBottom: "6px", color: "#111827" }}>
+                        Source
                     </div>
-                )}
 
-                {sourceSizeReport ? (
-                    <>
+                    {sourcePixelWidth && sourcePixelHeight && (
                         <div>
-                            Source crop fit: {formatInches(sourceSizeReport.sourceWidthIn)}" ×{" "}
+                            Pixels: {sourcePixelWidth} × {sourcePixelHeight}
+                        </div>
+                    )}
+
+                    {sourceSizeReport && (
+                        <div>
+                            Crop fit: {formatInches(sourceSizeReport.sourceWidthIn)}" ×{" "}
                             {formatInches(sourceSizeReport.sourceHeightIn)}"
                         </div>
-                        <div>
-                            Printed target: {formatInches(printedWidthIn)}" ×{" "}
-                            {formatInches(printedHeightIn)}"
-                        </div>
-                        <div>
-                            Stretch: {formatPercent(sourceSizeReport.stretchX)}% horizontal,{" "}
-                            {formatPercent(sourceSizeReport.stretchY)}% vertical
-                        </div>
-                    </>
-                ) : (
-                    <div>
-                        Printed target: {formatInches(printedWidthIn)}" ×{" "}
-                        {formatInches(printedHeightIn)}"
+                    )}
+
+                    <div>Brightness: {imageAdjustments.brightness}</div>
+                    <div>Contrast: {imageAdjustments.contrast}</div>
+                    <div>Saturation: {imageAdjustments.saturation}</div>
+                    <div>Gamma: {imageAdjustments.gamma}</div>
+                </div>
+                <div>
+                    <div style={{ fontWeight: 700, marginBottom: "6px", color: "#111827" }}>
+                        Map
                     </div>
-                )}
+
+                    <div>
+                        Target: {formatInches(printedWidthIn)}" × {formatInches(printedHeightIn)}"
+                    </div>
+
+                    {sourceSizeReport && (
+                        <div>
+                            Stretch: {formatPercent(sourceSizeReport.stretchX)}% H,{" "}
+                            {formatPercent(sourceSizeReport.stretchY)}% V
+                        </div>
+                    )}
+
+                    <div>
+                        Grid: {gridModeLabel}, {gridColor}, {gridSizeIn}"
+                    </div>
+
+                    <div>
+                        Grid count: {formatInches(gridWidthCount)} × {formatInches(gridHeightCount)}
+                    </div>
+
+                    <div>
+                        Map size: {formatInches(mapWidthFt)} ft × {formatInches(mapHeightFt)} ft
+                    </div>
+
+                </div>
 
                 <div>
-                    Grid: {gridModeLabel}, {gridColor}, {gridSizeIn}" squares
-                </div>
-                <div>
-                    Slice layout: {sliceEstimate.cols} × {sliceEstimate.rows} ={" "}
-                    {sliceEstimate.total} page{sliceEstimate.total === 1 ? "" : "s"}
-                </div>
-                <div>Slice format: {sliceSizeLabel}</div>
-                <div>Export DPI: {exportDpi}</div>
-                <div>
-                    Map size: {formatInches(mapWidthFt)} ft × {formatInches(mapHeightFt)} ft
+                    <div style={{ fontWeight: 700, marginBottom: "6px", color: "#111827" }}>
+                        PDF
+                    </div>
+
+                    <div>Slice format: {sliceSizeLabel}</div>
+
+                    <div>
+                        Page array: {sliceEstimate.cols} × {sliceEstimate.rows}
+                    </div>
+
+                    <div>
+                        Total pages: {sliceEstimate.total}
+                    </div>
+
+                    <div>Export DPI: {exportDpi}</div>
                 </div>
             </div>
+
         </section>
     );
 }

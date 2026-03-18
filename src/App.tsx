@@ -1,6 +1,7 @@
 import ControlPanel from "./components/ControlPanel.tsx";
 import PreviewPanel from "./components/PreviewPanel.tsx";
 import { useSlicerState } from "./hooks/useSlicerState.ts";
+import trumpoot from "./assets/trumpoot.svg";
 
 function App() {
   const slicer = useSlicerState();
@@ -8,7 +9,9 @@ function App() {
   return (
     <div
       style={{
-        minHeight: "100vh",
+        height: "100vh",
+        display: "grid",
+        gridTemplateRows: "auto 1fr",
         background: "#f3f4f6",
         color: "#111827",
         fontFamily: "Arial, sans-serif",
@@ -17,30 +20,42 @@ function App() {
     >
       <header
         style={{
-          background: "#1f2937",
+          background: "#204170",
           color: "white",
-          padding: "10px",
+          padding: "10px 14px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
         }}
       >
         <h1 style={{ margin: 0 }}>VTT Slicer</h1>
-      </header>
 
+        <img
+          src={trumpoot}
+          alt="Trumpoot logo"
+          style={{
+            height: "40px",
+            width: "auto",
+            display: "block",
+          }}
+        />
+      </header>
       <main
         style={{
           display: "grid",
           gridTemplateColumns: "340px 1px 1fr",
           gap: "0",
           padding: "0",
-          minHeight: "calc(100vh - 69px)",
+          height: "100%",
         }}
       >
         <ControlPanel slicer={slicer} />
-<div
-  style={{
-    background: "#9ca3af",
-    width: "1px",
-  }}
-/>
+        <div
+          style={{
+            background: "#9ca3af",
+            width: "1px",
+          }}
+        />
         <PreviewPanel
           imageUrl={slicer.imageUrl}
           printedWidthIn={slicer.printedWidthIn}
