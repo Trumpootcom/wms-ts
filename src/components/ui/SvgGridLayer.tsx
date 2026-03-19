@@ -68,51 +68,60 @@ function SvgGridLayer({
         ].join(" ");
     }
 
+    const cx = printedWidthIn / 2;
+    const cy = printedHeightIn / 2;
+    const halfDiag = Math.sqrt(printedWidthIn * printedWidthIn + printedHeightIn * printedHeightIn) / 2;
+
     const gridLines: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
 
     if (gridPerspectiveAngle === 90) {
-        const verticals = getGridPositions(0, printedWidthIn, gridSizeIn);
-        const horizontals = getGridPositions(0, printedHeightIn, gridSizeIn);
+        const verticals = getGridPositions(cx - halfDiag, halfDiag * 2, gridSizeIn);
+        const horizontals = getGridPositions(cy - halfDiag, halfDiag * 2, gridSizeIn);
 
         for (const x of verticals) {
             gridLines.push({
                 x1: x,
-                y1: 0,
+                y1: cy - halfDiag,
                 x2: x,
-                y2: printedHeightIn,
+                y2: cy + halfDiag,
             });
         }
 
         for (const y of horizontals) {
             gridLines.push({
-                x1: 0,
+                x1: cx - halfDiag,
                 y1: y,
-                x2: printedWidthIn,
+                x2: cx + halfDiag,
                 y2: y,
             });
         }
     } else {
         const tanAngle = Math.tan((gridPerspectiveAngle * Math.PI) / 180);
-        const run = printedHeightIn / tanAngle;
+        const run = (halfDiag * 2) / tanAngle;
         const step = gridSizeIn;
 
+        const minY = cy - halfDiag;
+        const maxY = cy + halfDiag;
+        const minX = cx - halfDiag;
+        const maxX = cx + halfDiag;
+
         // Family 1: positive slope
-        for (let startX = -run; startX <= printedWidthIn; startX += step) {
+        for (let startX = minX - run; startX <= maxX; startX += step) {
             gridLines.push({
                 x1: startX,
-                y1: 0,
+                y1: minY,
                 x2: startX + run,
-                y2: printedHeightIn,
+                y2: maxY,
             });
         }
 
         // Family 2: negative slope
-        for (let startX = 0; startX <= printedWidthIn + run; startX += step) {
+        for (let startX = minX; startX <= maxX + run; startX += step) {
             gridLines.push({
                 x1: startX,
-                y1: 0,
+                y1: minY,
                 x2: startX - run,
-                y2: printedHeightIn,
+                y2: maxY,
             });
         }
     }
