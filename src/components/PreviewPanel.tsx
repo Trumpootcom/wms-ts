@@ -21,6 +21,7 @@ type PreviewPanelProps = {
     printedWidthIn: number;
     printedHeightIn: number;
     gridMode: GridMode;
+    gridPerspectiveAngle: number;
     gridRotation: number;
     gridColor: GridColor;
     gridSizeIn: GridSize;
@@ -42,6 +43,7 @@ function PreviewPanel({
     printedWidthIn,
     printedHeightIn,
     gridMode,
+    gridPerspectiveAngle,
     gridRotation,
     gridColor,
     gridSizeIn,
@@ -185,6 +187,7 @@ function PreviewPanel({
                                 printedWidthIn={printedWidthIn}
                                 printedHeightIn={printedHeightIn}
                                 gridMode={gridMode}
+                                gridPerspectiveAngle={gridPerspectiveAngle}
                                 gridRotation={gridRotation}
                                 gridColor={gridColor}
                                 gridSizeIn={gridSizeIn}

@@ -4,6 +4,7 @@ type SvgGridLayerProps = {
     printedWidthIn: number;
     printedHeightIn: number;
     gridMode: GridMode;
+    gridPerspectiveAngle: number;
     gridRotation: number;
     gridColor: GridColor;
     gridSizeIn: GridSize;
@@ -30,6 +31,7 @@ function SvgGridLayer({
     printedWidthIn,
     printedHeightIn,
     gridMode,
+    gridPerspectiveAngle,
     gridRotation,
     gridColor,
     gridSizeIn,
@@ -39,22 +41,22 @@ function SvgGridLayer({
     const stroke =
         gridColor === "black" ? "rgba(0,0,0,1)" : "rgba(255,255,255,1)";
 
-    const strokeWidth = gridMode === "line" ? 0.05 : 0.05;
+    const strokeWidth = 0.05;
 
     let strokeDasharray: string | undefined;
     if (gridMode === "dash") {
         strokeDasharray = [
-            3 / 32 * gridSizeIn,
-            1 / 16 * gridSizeIn,
-            2 / 16 * gridSizeIn,
-            1 / 16 * gridSizeIn,
-            2 / 16 * gridSizeIn,
-            1 / 16 * gridSizeIn,
-            2 / 16 * gridSizeIn,
-            1 / 16 * gridSizeIn,
-            2 / 16 * gridSizeIn,
-            1 / 16 * gridSizeIn,
-            3 / 32 * gridSizeIn,
+            (3 / 32) * gridSizeIn,
+            (1 / 16) * gridSizeIn,
+            (2 / 16) * gridSizeIn,
+            (1 / 16) * gridSizeIn,
+            (2 / 16) * gridSizeIn,
+            (1 / 16) * gridSizeIn,
+            (2 / 16) * gridSizeIn,
+            (1 / 16) * gridSizeIn,
+            (2 / 16) * gridSizeIn,
+            (1 / 16) * gridSizeIn,
+            (3 / 32) * gridSizeIn,
             0,
         ].join(" ");
     } else if (gridMode === "corner") {
@@ -66,40 +68,53 @@ function SvgGridLayer({
         ].join(" ");
     }
 
-    const verticals = getGridPositions(0, printedWidthIn, gridSizeIn);
-    const horizontals = getGridPositions(0, printedHeightIn, gridSizeIn);
+    const gridLines: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
 
-    const tan30 = Math.tan(Math.PI / 6);
+    if (gridPerspectiveAngle === 90) {
+        const verticals = getGridPositions(0, printedWidthIn, gridSizeIn);
+        const horizontals = getGridPositions(0, printedHeightIn, gridSizeIn);
 
-    const isoLines: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
-
-    if (gridMode === "iso") {
-        const dx = gridSizeIn;
-        const dy = gridSizeIn * tan30;
-
-        // Family 1: slope +tan(30)
-        for (let startX = -printedHeightIn / tan30; startX <= printedWidthIn; startX += dx) {
-            isoLines.push({
-                x1: startX,
+        for (const x of verticals) {
+            gridLines.push({
+                x1: x,
                 y1: 0,
-                x2: startX + printedHeightIn / tan30,
+                x2: x,
                 y2: printedHeightIn,
             });
         }
 
-        // Family 2: slope -tan(30)
-        for (let startX = 0; startX <= printedWidthIn + printedHeightIn / tan30; startX += dx) {
-            isoLines.push({
+        for (const y of horizontals) {
+            gridLines.push({
+                x1: 0,
+                y1: y,
+                x2: printedWidthIn,
+                y2: y,
+            });
+        }
+    } else {
+        const tanAngle = Math.tan((gridPerspectiveAngle * Math.PI) / 180);
+        const run = printedHeightIn / tanAngle;
+        const step = gridSizeIn;
+
+        // Family 1: positive slope
+        for (let startX = -run; startX <= printedWidthIn; startX += step) {
+            gridLines.push({
                 x1: startX,
                 y1: 0,
-                x2: startX - printedHeightIn / tan30,
+                x2: startX + run,
                 y2: printedHeightIn,
             });
         }
 
-        // Optional extra pass to tighten apparent spacing vertically a bit
-        // If you want the diamonds denser/lighter later, this is the knob:
-        void dy;
+        // Family 2: negative slope
+        for (let startX = 0; startX <= printedWidthIn + run; startX += step) {
+            gridLines.push({
+                x1: startX,
+                y1: 0,
+                x2: startX - run,
+                y2: printedHeightIn,
+            });
+        }
     }
 
     return (
@@ -118,56 +133,22 @@ function SvgGridLayer({
             <g
                 transform={`rotate(${gridRotation} ${printedWidthIn / 2} ${printedHeightIn / 2})`}
             >
-            {gridMode === "iso" ? (
-                isoLines.map((line, index) => (
+                {gridLines.map((line, index) => (
                     <line
-                        key={`iso-${index}`}
+                        key={`grid-${index}`}
                         x1={line.x1}
                         y1={line.y1}
                         x2={line.x2}
                         y2={line.y2}
                         stroke={stroke}
-                        strokeWidth={2}
-                        vectorEffect="non-scaling-stroke"
+                        strokeWidth={strokeWidth}
+                        strokeDasharray={strokeDasharray}
                         shapeRendering="crispEdges"
                         strokeLinecap="butt"
                     />
-                ))
-            ) : (
-                <>
-                    {verticals.map((x, index) => (
-                        <line
-                            key={`v-${index}`}
-                            x1={x}
-                            y1={0}
-                            x2={x}
-                            y2={printedHeightIn}
-                            stroke={stroke}
-                            strokeWidth={strokeWidth}
-                            strokeDasharray={strokeDasharray}
-                            shapeRendering="crispEdges"
-                            strokeLinecap="butt"
-                        />
-                    ))}
-
-                    {horizontals.map((y, index) => (
-                        <line
-                            key={`h-${index}`}
-                            x1={0}
-                            y1={y}
-                            x2={printedWidthIn}
-                            y2={y}
-                            stroke={stroke}
-                            strokeWidth={strokeWidth}
-                            strokeDasharray={strokeDasharray}
-                            shapeRendering="crispEdges"
-                            strokeLinecap="butt"
-                        />
-                    ))}
-                </>
-            )}
-        </g>
-        </svg >
+                ))}
+            </g>
+        </svg>
     );
 }
 

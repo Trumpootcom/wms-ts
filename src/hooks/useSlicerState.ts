@@ -38,6 +38,8 @@ export function useSlicerState() {
 
   const [gridMode, setGridMode] = useState<GridMode>("line");
   const [gridRotation, setGridRotation] = useState<number>(0);
+  const [gridPerspectiveAngle, setGridPerspectiveAngle] = useState<number>(90);
+
   const [gridColor, setGridColor] = useState<GridColor>("black");
   const [sliceSize, setSliceSize] = useState<SliceSize>("8x10");
   const [gridSizeIn, setGridSizeIn] = useState<GridSize>(1);
@@ -258,6 +260,7 @@ export function useSlicerState() {
     maintainAspectRatio,
 
     gridMode,
+    gridPerspectiveAngle,
     gridRotation,
     gridColor,
     sliceSize,
@@ -277,6 +280,7 @@ export function useSlicerState() {
     handleExportPdf,
 
     setGridMode,
+    setGridPerspectiveAngle,
     setGridRotation,
     setGridColor,
     setSliceSize,

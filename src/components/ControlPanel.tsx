@@ -91,16 +91,26 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                         { value: "line", icon: <SvgIcon name="gridLine" size={20} />, title: "Line" },
                         { value: "dash", icon: <SvgIcon name="gridDash" size={20} />, title: "Dash" },
                         { value: "corner", icon: <SvgIcon name="gridCorner" size={20} />, title: "Corner" },
-                        { value: "iso", title: "Iso" },
                     ]}
                 />
+                <NumberWithSlider
+                    label="Perspective"
+                    value={slicer.gridPerspectiveAngle}
+                    onChange={slicer.setGridPerspectiveAngle}
+                    min={20}
+                    max={90}
+                    stepInput={5}
+                    stepSlider={5}
+                />
+
                 <NumberWithSlider
                     label="Rotation"
                     value={slicer.gridRotation}
                     onChange={slicer.setGridRotation}
                     min={-30}
                     max={30}
-                    step={10}
+                    stepInput={1}
+                    stepSlider={1}
                 />
                 <LabeledSegmentedControl
                     label="Color"
