@@ -120,7 +120,7 @@ function PreviewPanel({
                 overflow: "hidden",
             }}
         >
-            <h2 style={{ margin: "12px" }}>Preview</h2>
+            <h2 style={{ margin: "6px" }}>Preview</h2>
 
             <div
                 style={{
@@ -130,28 +130,29 @@ function PreviewPanel({
                     boxSizing: "border-box",
                     display: "grid",
                     placeItems: "center",
+                    border: "1px solid #9ca3af",
                 }}
             >
-                <div
-                    style={{
-                        width: `${frameWidthPx}px`,
-                        height: `${frameHeightPx}px`,
-                        position: "relative",
-                        border: "1px solid #9ca3af",
-                        background: "#e5e7eb",
-                        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                        overflow: "hidden",
-                        flexShrink: 0,
-                    }}
-                >
+<div
+    id="mapStage"
+    style={{
+        position: "relative",
+        width: `${frameWidthPx}px`,
+        height: `${frameHeightPx}px`,
+        border: "1px solid #9ca3af",
+        background: "#e5e7eb",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+        overflow: "hidden",
+        flexShrink: 0,
+    }}
+>
                     {imageUrl ? (
-                        <div
+                        <div id="image"
                             style={{
                                 position: "absolute",
-                                left: `${imageBoxLeftPx}px`,
-                                top: `${imageBoxTopPx}px`,
-                                width: `${imageBoxWidthPx}px`,
-                                height: `${imageBoxHeightPx}px`,
+                                inset: 0,
+                                width: "100%",
+                                height: "100%",
                                 overflow: "hidden",
                             }}
                         >
@@ -166,23 +167,6 @@ function PreviewPanel({
                                     filter: imageFilter,
                                 }}
                             />
-                            {/* Grid overlay 
-                            {gridMode !== "none" && (
-                                <div
-                                    style={{
-                                        position: "absolute",
-                                        inset: 0,
-                                        pointerEvents: "none",
-                                        backgroundImage: `
-                                            linear-gradient(to right, ${previewGridLineColor} 1px, transparent 1px),
-                                            linear-gradient(to bottom, ${previewGridLineColor} 1px, transparent 1px)
-                                        `,
-                                        backgroundSize: `${(gridSizeIn / printedWidthIn) * 100}% ${(gridSizeIn / printedHeightIn) * 100}%`,
-                                        backgroundPosition: "0 0, 0 0",
-                                    }}
-                                />
-                            )}
-*/}
                             <SvgGridLayer
                                 printedWidthIn={printedWidthIn}
                                 printedHeightIn={printedHeightIn}
@@ -192,7 +176,7 @@ function PreviewPanel({
                                 gridColor={gridColor}
                                 gridSizeIn={gridSizeIn}
                             />
-                            <div
+                            <div id="page-slice-overlay"
                                 style={{
                                     position: "absolute",
                                     inset: 0,

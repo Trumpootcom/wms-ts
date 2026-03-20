@@ -1,4 +1,9 @@
 import type { GridColor, GridMode, GridSize } from "../../slicer/types.ts";
+import {
+    buildParallelLineFamilyInRect,
+    type GridLineSegment,
+    normalFromLineAngleDegrees,
+} from "../../slicer/gridMath.ts";
 
 type SvgGridLayerProps = {
     printedWidthIn: number;
@@ -10,21 +15,91 @@ type SvgGridLayerProps = {
     gridSizeIn: GridSize;
 };
 
-function getGridPositions(
-    tileStartIn: number,
-    tileSizeIn: number,
-    gridSizeIn: number,
-): number[] {
-    const epsilon = 0.000001;
-    const start = Math.ceil(tileStartIn / gridSizeIn - epsilon) * gridSizeIn;
-    const end = tileStartIn + tileSizeIn + epsilon;
-
-    const positions: number[] = [];
-    for (let inch = start; inch <= end; inch += gridSizeIn) {
-        positions.push(inch);
+function getStrokeDasharray(
+    gridMode: GridMode,
+    gridSizeIn: GridSize,
+): string | undefined {
+    if (gridMode === "dash") {
+        return [
+            (3 / 32) * gridSizeIn,
+            (1 / 16) * gridSizeIn,
+            (2 / 16) * gridSizeIn,
+            (1 / 16) * gridSizeIn,
+            (2 / 16) * gridSizeIn,
+            (1 / 16) * gridSizeIn,
+            (2 / 16) * gridSizeIn,
+            (1 / 16) * gridSizeIn,
+            (2 / 16) * gridSizeIn,
+            (1 / 16) * gridSizeIn,
+            (3 / 32) * gridSizeIn,
+            0,
+        ].join(" ");
     }
 
-    return positions;
+    if (gridMode === "corner") {
+        return [
+            0.125 * gridSizeIn,
+            0.75 * gridSizeIn,
+            0.125 * gridSizeIn,
+            0,
+        ].join(" ");
+    }
+
+    return undefined;
+}
+
+function getPreviewGridSegments(
+    printedWidthIn: number,
+    printedHeightIn: number,
+    gridPerspectiveAngle: number,
+    gridSizeIn: GridSize,
+): GridLineSegment[] {
+    const rect = {
+        x: 0,
+        y: 0,
+        width: printedWidthIn,
+        height: printedHeightIn,
+    };
+
+    if (gridPerspectiveAngle === 90) {
+        const verticalNormal = normalFromLineAngleDegrees(90);
+        const horizontalNormal = normalFromLineAngleDegrees(0);
+
+        return [
+            ...buildParallelLineFamilyInRect(
+                rect,
+                verticalNormal.normalX,
+                verticalNormal.normalY,
+                gridSizeIn,
+            ),
+            ...buildParallelLineFamilyInRect(
+                rect,
+                horizontalNormal.normalX,
+                horizontalNormal.normalY,
+                gridSizeIn,
+            ),
+        ];
+    }
+
+const familyAngleA = gridPerspectiveAngle;
+const familyAngleB = -gridPerspectiveAngle;
+    const normalA = normalFromLineAngleDegrees(familyAngleA);
+    const normalB = normalFromLineAngleDegrees(familyAngleB);
+
+    return [
+        ...buildParallelLineFamilyInRect(
+            rect,
+            normalA.normalX,
+            normalA.normalY,
+            gridSizeIn,
+        ),
+        ...buildParallelLineFamilyInRect(
+            rect,
+            normalB.normalX,
+            normalB.normalY,
+            gridSizeIn,
+        ),
+    ];
 }
 
 function SvgGridLayer({
@@ -42,89 +117,14 @@ function SvgGridLayer({
         gridColor === "black" ? "rgba(0,0,0,1)" : "rgba(255,255,255,1)";
 
     const strokeWidth = 0.05;
+    const strokeDasharray = getStrokeDasharray(gridMode, gridSizeIn);
 
-    let strokeDasharray: string | undefined;
-    if (gridMode === "dash") {
-        strokeDasharray = [
-            (3 / 32) * gridSizeIn,
-            (1 / 16) * gridSizeIn,
-            (2 / 16) * gridSizeIn,
-            (1 / 16) * gridSizeIn,
-            (2 / 16) * gridSizeIn,
-            (1 / 16) * gridSizeIn,
-            (2 / 16) * gridSizeIn,
-            (1 / 16) * gridSizeIn,
-            (2 / 16) * gridSizeIn,
-            (1 / 16) * gridSizeIn,
-            (3 / 32) * gridSizeIn,
-            0,
-        ].join(" ");
-    } else if (gridMode === "corner") {
-        strokeDasharray = [
-            0.125 * gridSizeIn,
-            0.75 * gridSizeIn,
-            0.125 * gridSizeIn,
-            0,
-        ].join(" ");
-    }
-
-    const cx = printedWidthIn / 2;
-    const cy = printedHeightIn / 2;
-    const halfDiag = Math.sqrt(printedWidthIn * printedWidthIn + printedHeightIn * printedHeightIn) / 2;
-
-    const gridLines: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
-
-    if (gridPerspectiveAngle === 90) {
-        const verticals = getGridPositions(cx - halfDiag, halfDiag * 2, gridSizeIn);
-        const horizontals = getGridPositions(cy - halfDiag, halfDiag * 2, gridSizeIn);
-
-        for (const x of verticals) {
-            gridLines.push({
-                x1: x,
-                y1: cy - halfDiag,
-                x2: x,
-                y2: cy + halfDiag,
-            });
-        }
-
-        for (const y of horizontals) {
-            gridLines.push({
-                x1: cx - halfDiag,
-                y1: y,
-                x2: cx + halfDiag,
-                y2: y,
-            });
-        }
-    } else {
-        const tanAngle = Math.tan((gridPerspectiveAngle * Math.PI) / 180);
-        const run = (halfDiag * 2) / tanAngle;
-        const step = gridSizeIn;
-
-        const minY = cy - halfDiag;
-        const maxY = cy + halfDiag;
-        const minX = cx - halfDiag;
-        const maxX = cx + halfDiag;
-
-        // Family 1: positive slope
-        for (let startX = minX - run; startX <= maxX; startX += step) {
-            gridLines.push({
-                x1: startX,
-                y1: minY,
-                x2: startX + run,
-                y2: maxY,
-            });
-        }
-
-        // Family 2: negative slope
-        for (let startX = minX; startX <= maxX + run; startX += step) {
-            gridLines.push({
-                x1: startX,
-                y1: minY,
-                x2: startX - run,
-                y2: maxY,
-            });
-        }
-    }
+    const gridLines = getPreviewGridSegments(
+        printedWidthIn,
+        printedHeightIn,
+        gridPerspectiveAngle,
+        gridSizeIn,
+    );
 
     return (
         <svg

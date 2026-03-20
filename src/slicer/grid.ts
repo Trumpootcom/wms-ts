@@ -1,18 +1,146 @@
-function getGridPositions(
-  tileStartIn: number,
-  tileSizeIn: number,
-  gridSizeIn: number,
-): number[] {
-  const epsilon = 0.000001;
-  const start = Math.ceil(tileStartIn / gridSizeIn - epsilon) * gridSizeIn;
-  const end = tileStartIn + tileSizeIn + epsilon;
+import {
+  buildParallelLineFamilyInRect,
+  normalFromLineAngleDegrees,
+  type GridLineSegment,
+} from "./gridMath.ts";
 
-  const positions: number[] = [];
-  for (let inch = start; inch <= end; inch += gridSizeIn) {
-    positions.push(inch);
+type LineSegment = {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+};
+
+function drawLineSegments(
+  ctx: CanvasRenderingContext2D,
+  segments: LineSegment[],
+) {
+  for (const segment of segments) {
+    ctx.beginPath();
+    ctx.moveTo(segment.x1, segment.y1);
+    ctx.lineTo(segment.x2, segment.y2);
+    ctx.stroke();
+  }
+}
+
+function getMapGridSegmentsInInches(
+  printedWidthIn: number,
+  printedHeightIn: number,
+  gridPerspectiveAngle: number,
+  gridSizeIn: number,
+): GridLineSegment[] {
+  const rect = {
+    x: 0,
+    y: 0,
+    width: printedWidthIn,
+    height: printedHeightIn,
+  };
+
+  if (gridPerspectiveAngle === 90) {
+    const verticalNormal = normalFromLineAngleDegrees(90);
+    const horizontalNormal = normalFromLineAngleDegrees(0);
+
+    return [
+      ...buildParallelLineFamilyInRect(
+        rect,
+        verticalNormal.normalX,
+        verticalNormal.normalY,
+        gridSizeIn,
+      ),
+      ...buildParallelLineFamilyInRect(
+        rect,
+        horizontalNormal.normalX,
+        horizontalNormal.normalY,
+        gridSizeIn,
+      ),
+    ];
   }
 
-  return positions;
+  const familyAngleA = gridPerspectiveAngle;
+  const familyAngleB = -gridPerspectiveAngle;
+
+  const normalA = normalFromLineAngleDegrees(familyAngleA);
+  const normalB = normalFromLineAngleDegrees(familyAngleB);
+
+  return [
+    ...buildParallelLineFamilyInRect(
+      rect,
+      normalA.normalX,
+      normalA.normalY,
+      gridSizeIn,
+    ),
+    ...buildParallelLineFamilyInRect(
+      rect,
+      normalB.normalX,
+      normalB.normalY,
+      gridSizeIn,
+    ),
+  ];
+}
+
+function convertMapSegmentsToTilePixels(
+  segmentsInInches: GridLineSegment[],
+  tileXIn: number,
+  tileYIn: number,
+  dpi: number,
+): LineSegment[] {
+  return segmentsInInches.map((segment) => ({
+    x1: (segment.x1 - tileXIn) * dpi,
+    y1: (segment.y1 - tileYIn) * dpi,
+    x2: (segment.x2 - tileXIn) * dpi,
+    y2: (segment.y2 - tileYIn) * dpi,
+  }));
+}
+
+function drawStyledGrid(
+  ctx: CanvasRenderingContext2D,
+  tileWidthPx: number,
+  tileHeightPx: number,
+  tileXIn: number,
+  tileYIn: number,
+  printedWidthIn: number,
+  printedHeightIn: number,
+  gridPerspectiveAngle: number,
+  gridRotation: number,
+  gridSizeIn: number,
+  dpi: number,
+  strokeStyle: string,
+  lineWidth: number,
+  lineDash: number[],
+) {
+  const mapSegmentsInInches = getMapGridSegmentsInInches(
+    printedWidthIn,
+    printedHeightIn,
+    gridPerspectiveAngle,
+    gridSizeIn,
+  );
+
+  const tileSegments = convertMapSegmentsToTilePixels(
+    mapSegmentsInInches,
+    tileXIn,
+    tileYIn,
+    dpi,
+  );
+
+  const mapCenterLocalX = (printedWidthIn / 2 - tileXIn) * dpi;
+  const mapCenterLocalY = (printedHeightIn / 2 - tileYIn) * dpi;
+
+  ctx.save();
+
+  ctx.beginPath();
+  ctx.rect(0, 0, tileWidthPx, tileHeightPx);
+  ctx.clip();
+
+  ctx.strokeStyle = strokeStyle;
+  ctx.lineWidth = lineWidth;
+  ctx.setLineDash(lineDash);
+
+  ctx.translate(mapCenterLocalX, mapCenterLocalY);
+  ctx.rotate((gridRotation * Math.PI) / 180);
+  ctx.translate(-mapCenterLocalX, -mapCenterLocalY);
+
+  drawLineSegments(ctx, tileSegments);
+  ctx.restore();
 }
 
 export function drawLineGrid(
@@ -21,39 +149,30 @@ export function drawLineGrid(
   tileHeightPx: number,
   tileXIn: number,
   tileYIn: number,
-  tileWidthIn: number,
-  tileHeightIn: number,
+  printedWidthIn: number,
+  printedHeightIn: number,
+  gridPerspectiveAngle: number,
+  gridRotation: number,
   gridSizeIn: number,
   dpi: number,
   strokeStyle: string,
 ) {
-  ctx.save();
-  ctx.strokeStyle = strokeStyle;
-  ctx.lineWidth = 2;
-
-  const verticals = getGridPositions(tileXIn, tileWidthIn, gridSizeIn);
-  for (const inch of verticals) {
-    const x = (inch - tileXIn) * dpi;
-    if (x < 0 || x > tileWidthPx) continue;
-    const crispX = Math.round(x) + 0.5;
-    ctx.beginPath();
-    ctx.moveTo(crispX, 0);
-    ctx.lineTo(crispX, tileHeightPx);
-    ctx.stroke();
-  }
-
-  const horizontals = getGridPositions(tileYIn, tileHeightIn, gridSizeIn);
-  for (const inch of horizontals) {
-    const y = (inch - tileYIn) * dpi;
-    if (y < 0 || y > tileHeightPx) continue;
-    const crispY = Math.round(y) + 0.5;
-    ctx.beginPath();
-    ctx.moveTo(0, crispY);
-    ctx.lineTo(tileWidthPx, crispY);
-    ctx.stroke();
-  }
-
-  ctx.restore();
+  drawStyledGrid(
+    ctx,
+    tileWidthPx,
+    tileHeightPx,
+    tileXIn,
+    tileYIn,
+    printedWidthIn,
+    printedHeightIn,
+    gridPerspectiveAngle,
+    gridRotation,
+    gridSizeIn,
+    dpi,
+    strokeStyle,
+    2,
+    [],
+  );
 }
 
 export function drawDashedGrid(
@@ -62,42 +181,33 @@ export function drawDashedGrid(
   tileHeightPx: number,
   tileXIn: number,
   tileYIn: number,
-  tileWidthIn: number,
-  tileHeightIn: number,
+  printedWidthIn: number,
+  printedHeightIn: number,
+  gridPerspectiveAngle: number,
+  gridRotation: number,
   gridSizeIn: number,
   dpi: number,
   strokeStyle: string,
 ) {
-  ctx.save();
-  ctx.strokeStyle = strokeStyle;
-  ctx.lineWidth = 3;
   const dash = 0.125 * gridSizeIn * dpi;
   const gap = 0.125 * gridSizeIn * dpi;
-  ctx.setLineDash([dash/2, gap, dash,gap, dash/2,0]);
 
-  const verticals = getGridPositions(tileXIn, tileWidthIn, gridSizeIn);
-  for (const inch of verticals) {
-    const x = (inch - tileXIn) * dpi;
-    if (x < 0 || x > tileWidthPx) continue;
-    const crispX = Math.round(x) + 0.5;
-    ctx.beginPath();
-    ctx.moveTo(crispX, 0);
-    ctx.lineTo(crispX, tileHeightPx);
-    ctx.stroke();
-  }
-
-  const horizontals = getGridPositions(tileYIn, tileHeightIn, gridSizeIn);
-  for (const inch of horizontals) {
-    const y = (inch - tileYIn) * dpi;
-    if (y < 0 || y > tileHeightPx) continue;
-    const crispY = Math.round(y) + 0.5;
-    ctx.beginPath();
-    ctx.moveTo(0, crispY);
-    ctx.lineTo(tileWidthPx, crispY);
-    ctx.stroke();
-  }
-
-  ctx.restore();
+  drawStyledGrid(
+    ctx,
+    tileWidthPx,
+    tileHeightPx,
+    tileXIn,
+    tileYIn,
+    printedWidthIn,
+    printedHeightIn,
+    gridPerspectiveAngle,
+    gridRotation,
+    gridSizeIn,
+    dpi,
+    strokeStyle,
+    3,
+    [dash / 2, gap, dash, gap, dash / 2, 0],
+  );
 }
 
 export function drawCornerGrid(
@@ -106,40 +216,31 @@ export function drawCornerGrid(
   tileHeightPx: number,
   tileXIn: number,
   tileYIn: number,
-  tileWidthIn: number,
-  tileHeightIn: number,
+  printedWidthIn: number,
+  printedHeightIn: number,
+  gridPerspectiveAngle: number,
+  gridRotation: number,
   gridSizeIn: number,
   dpi: number,
   strokeStyle: string,
 ) {
-  ctx.save();
-  ctx.strokeStyle = strokeStyle;
-  ctx.lineWidth = 3;
   const dash = 0.125 * gridSizeIn * dpi;
   const gap = 0.75 * gridSizeIn * dpi;
-  ctx.setLineDash([dash, gap, dash,0]);
 
-  const verticals = getGridPositions(tileXIn, tileWidthIn, gridSizeIn);
-  for (const inch of verticals) {
-    const x = (inch - tileXIn) * dpi;
-    if (x < 0 || x > tileWidthPx) continue;
-    const crispX = Math.round(x) + 0.5;
-    ctx.beginPath();
-    ctx.moveTo(crispX, 0);
-    ctx.lineTo(crispX, tileHeightPx);
-    ctx.stroke();
-  }
-
-  const horizontals = getGridPositions(tileYIn, tileHeightIn, gridSizeIn);
-  for (const inch of horizontals) {
-    const y = (inch - tileYIn) * dpi;
-    if (y < 0 || y > tileHeightPx) continue;
-    const crispY = Math.round(y) + 0.5;
-    ctx.beginPath();
-    ctx.moveTo(0, crispY);
-    ctx.lineTo(tileWidthPx, crispY);
-    ctx.stroke();
-  }
-
-  ctx.restore();
+  drawStyledGrid(
+    ctx,
+    tileWidthPx,
+    tileHeightPx,
+    tileXIn,
+    tileYIn,
+    printedWidthIn,
+    printedHeightIn,
+    gridPerspectiveAngle,
+    gridRotation,
+    gridSizeIn,
+    dpi,
+    strokeStyle,
+    3,
+    [dash, gap, dash, 0],
+  );
 }

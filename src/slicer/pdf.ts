@@ -33,6 +33,8 @@ type ExportPdfArgs = {
   gridMode: GridMode;
   gridColor: GridColor;
   gridSizeIn: number;
+  gridPerspectiveAngle?: number;
+  gridRotation?: number;
   imageAdjustments: ImageAdjustments;
   exportDpi: number;
   onProgress?: (message: string) => void;
@@ -47,6 +49,8 @@ export async function exportSlicedPdf({
   gridMode,
   gridColor,
   gridSizeIn,
+  gridPerspectiveAngle = 90,
+  gridRotation = 0,
   imageAdjustments,
   exportDpi,
   onProgress,
@@ -90,6 +94,7 @@ export async function exportSlicedPdf({
     const sy = (tile.yIn / printedHeightIn) * sourceImage.height;
     const sw = (tile.widthIn / printedWidthIn) * sourceImage.width;
     const sh = (tile.heightIn / printedHeightIn) * sourceImage.height;
+
     ctx.save();
     drawAdjustedSliceToCanvas({
       canvas: canvas,
@@ -104,7 +109,6 @@ export async function exportSlicedPdf({
     });
     ctx.restore();
 
-
     if (gridMode === "line") {
       drawLineGrid(
         ctx,
@@ -112,8 +116,10 @@ export async function exportSlicedPdf({
         tileHeightPx,
         tile.xIn,
         tile.yIn,
-        tile.widthIn,
-        tile.heightIn,
+        printedWidthIn,
+        printedHeightIn,
+        gridPerspectiveAngle,
+        gridRotation,
         gridSizeIn,
         exportDpi,
         exportGridLineColor,
@@ -125,8 +131,10 @@ export async function exportSlicedPdf({
         tileHeightPx,
         tile.xIn,
         tile.yIn,
-        tile.widthIn,
-        tile.heightIn,
+        printedWidthIn,
+        printedHeightIn,
+        gridPerspectiveAngle,
+        gridRotation,
         gridSizeIn,
         exportDpi,
         exportGridLineColor,
@@ -138,8 +146,10 @@ export async function exportSlicedPdf({
         tileHeightPx,
         tile.xIn,
         tile.yIn,
-        tile.widthIn,
-        tile.heightIn,
+        printedWidthIn,
+        printedHeightIn,
+        gridPerspectiveAngle,
+        gridRotation,
         gridSizeIn,
         exportDpi,
         exportGridLineColor,
