@@ -193,7 +193,7 @@ export async function exportSlicedPdf({
   gridMode,
   gridColor,
   gridSizeIn,
-  gridPerspectiveAngle = 90,
+  gridPerspectiveAngle = 0,
   gridRotation = 0,
   imageAdjustments,
   exportDpi,

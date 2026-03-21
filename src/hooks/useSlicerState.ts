@@ -38,7 +38,7 @@ export function useSlicerState() {
 
   const [gridMode, setGridMode] = useState<GridMode>("line");
   const [gridRotation, setGridRotation] = useState<number>(0);
-  const [gridPerspectiveAngle, setGridPerspectiveAngle] = useState<number>(90);
+  const [gridPerspectiveAngle, setGridPerspectiveAngle] = useState<number>(0);
 
   const [gridColor, setGridColor] = useState<GridColor>("black");
   const [sliceSize, setSliceSize] = useState<SliceSize>("8x10");

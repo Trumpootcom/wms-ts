@@ -36,7 +36,7 @@ function getMapGridSegmentsInInches(
     height: printedHeightIn,
   };
 
-  if (gridPerspectiveAngle === 90) {
+  if (gridPerspectiveAngle === 0) {
     const verticalNormal = normalFromLineAngleDegrees(90);
     const horizontalNormal = normalFromLineAngleDegrees(0);
 

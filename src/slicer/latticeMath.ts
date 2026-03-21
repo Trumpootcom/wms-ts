@@ -88,7 +88,7 @@ export function getGridBasis(
     y: printedHeightIn / 2,
   };
 
-  if (gridPerspectiveAngle === 90) {
+  if (gridPerspectiveAngle === 0) {
     const u0: Vector = { x: gridSizeIn, y: 0 };
     const v0: Vector = { x: 0, y: gridSizeIn };
 

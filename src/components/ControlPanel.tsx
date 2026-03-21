@@ -7,6 +7,7 @@ import { controlLabelStyle } from "./ui/uiStyles.ts";
 import ColorSwatchIcon from "./ui/ColorSwatchIcon.tsx";
 import LabeledSegmentedControl from "./ui/LabeledSegmentedControl";
 import SvgIcon from "./ui/SvgIcon";
+import { DEFAULT_GRID_SIZE_IN, DEFAULT_HEIGHT_IN, DEFAULT_WIDTH_IN } from "../slicer/defaults.ts";
 
 type ControlPanelProps = {
     slicer: ReturnType<typeof useSlicerState>;
@@ -26,11 +27,11 @@ function ControlPanel({ slicer }: ControlPanelProps) {
             <h2 style={{ marginTop: 0, marginBottom: "5px" }}>Controls</h2>
 
 
-            <PanelSection title="Image">
+            <PanelSection title="Image Controls">
                 <div style={{ marginBottom: "5px" }}>
                     <input type="file" accept="image/*" onChange={slicer.handleFileUpload} />
                 </div>
-
+{/*}
                 <LabeledSegmentedControl
                     label="Image Adjustments"
                     value="restore"
@@ -40,11 +41,13 @@ function ControlPanel({ slicer }: ControlPanelProps) {
 
                     ]}
                 />
+                */}
                 <NumberWithSlider
-                    label="Brightness"
+                    label="Bright"
                     value={slicer.imageAdjustments.brightness}
                     min={0}
                     max={200}
+                    defaultValue={100}
                     stepInput={1}
                     stepSlider={1}
                     onChange={(value) => slicer.updateImageAdjustment("brightness", value)}
@@ -55,6 +58,7 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     value={slicer.imageAdjustments.contrast}
                     min={0}
                     max={200}
+                    defaultValue={100}
                     stepInput={1}
                     stepSlider={1}
                     onChange={(value) => slicer.updateImageAdjustment("contrast", value)}
@@ -65,6 +69,7 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     value={slicer.imageAdjustments.saturation}
                     min={0}
                     max={200}
+                    defaultValue={100}
                     stepInput={1}
                     stepSlider={1}
                     onChange={(value) => slicer.updateImageAdjustment("saturation", value)}
@@ -75,13 +80,14 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     value={slicer.imageAdjustments.gamma}
                     min={0.2}
                     max={3}
+                    defaultValue={1}
                     stepInput={0.1}
                     stepSlider={0.1}
                     onChange={(value) => slicer.updateImageAdjustment("gamma", value)}
                 />
 
             </PanelSection>
-            <PanelSection title="Grid">
+            <PanelSection title="Grid Controls">
                 <LabeledSegmentedControl
                     label="Type"
                     value={slicer.gridMode}
@@ -94,21 +100,23 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     ]}
                 />
                 <NumberWithSlider
-                    label="Perspective"
+                    label="Iso Angle"
                     value={slicer.gridPerspectiveAngle}
                     onChange={slicer.setGridPerspectiveAngle}
-                    min={20}
-                    max={90}
-                    stepInput={5}
-                    stepSlider={5}
+                    min={0}
+                    max={45}
+                    defaultValue={0}
+                    stepInput={2.5}
+                    stepSlider={2.5}
                 />
 
                 <NumberWithSlider
                     label="Rotation"
                     value={slicer.gridRotation}
                     onChange={slicer.setGridRotation}
-                    min={-30}
-                    max={30}
+                    min={-90}
+                    max={90}
+                    defaultValue={0}
                     stepInput={1}
                     stepSlider={1}
                 />
@@ -126,18 +134,20 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     value={slicer.gridSizeIn}
                     min={0.75}
                     max={1.5}
+                    defaultValue={DEFAULT_GRID_SIZE_IN}
                     stepInput={0.125}
                     stepSlider={0.125}
                     onChange={slicer.setGridSizeIn}
                 />
             </PanelSection>
 
-            <PanelSection title="Output">
+            <PanelSection title="Output Controls">
                 <NumberWithSlider
                     label="Width"
                     value={slicer.printedWidthIn}
                     min={8}
                     max={36}
+                    defaultValue={DEFAULT_WIDTH_IN}
                     onChange={slicer.updateWidth}
                 />
 
@@ -146,6 +156,7 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     value={slicer.printedHeightIn}
                     min={8}
                     max={36}
+                    defaultValue={DEFAULT_HEIGHT_IN}
                     onChange={slicer.updateHeight}
                 />
                 <div style={{ marginBottom: "20px" }}>
