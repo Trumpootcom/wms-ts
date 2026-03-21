@@ -26,6 +26,7 @@ type PreviewPanelProps = {
     gridRotation: number;
     gridColor: GridColor;
     gridSizeIn: GridSize;
+    gridLineThickness?: number;
     sliceSize: SliceSize;
     sliceEstimate: SliceEstimate;
     previewStage: {
@@ -51,6 +52,7 @@ function PreviewPanel({
     gridRotation,
     gridColor,
     gridSizeIn,
+    gridLineThickness,
     sliceSize,
     sliceEstimate,
     previewStage,
@@ -65,8 +67,8 @@ function PreviewPanel({
 }: PreviewPanelProps) {
     const infoPaneHeight = 170;
 
-    const sliceLineColor =
-        gridColor === "black" ? "rgba(220, 38, 38, 0.95)" : "rgba(239, 68, 68, 0.95)";
+const sliceLineColor =
+    gridColor === "black" ? "rgba(220, 38, 38, 0.95)" : "rgba(239, 68, 68, 0.95)";
 
     const mapWidthFt = (printedWidthIn / gridSizeIn) * 5;
     const mapHeightFt = (printedHeightIn / gridSizeIn) * 5;
@@ -194,6 +196,7 @@ function PreviewPanel({
                                 gridRotation={gridRotation}
                                 gridColor={gridColor}
                                 gridSizeIn={gridSizeIn}
+                                gridLineThickness={gridLineThickness}
                             />
 
                             <div

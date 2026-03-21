@@ -4,6 +4,7 @@ import { buildImageViewRect } from "./imageView.ts";
 import type { GridColor, GridMode, SliceEstimate, SliceSize } from "./types.ts";
 import { drawAdjustedSliceToCanvas } from "./imageAdjustments.ts";
 import type { ImageAdjustments } from "./types.ts";
+import { GRID_COLORS } from "./gridConstants.ts";
 
 export async function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -34,6 +35,7 @@ type ExportPdfArgs = {
   gridMode: GridMode;
   gridColor: GridColor;
   gridSizeIn: number;
+  gridLineThickness?: number;
   gridPerspectiveAngle?: number;
   gridRotation?: number;
   imageZoom: number;
@@ -130,6 +132,7 @@ function drawGridPrimitivesOnTileCanvas(
   tileHeightPx: number,
   dpi: number,
   strokeStyle: string,
+  strokeWidth: number = 1,
 ) {
   const tileWidthIn = tileWidthPx / dpi;
   const tileHeightIn = tileHeightPx / dpi;
@@ -140,7 +143,7 @@ function drawGridPrimitivesOnTileCanvas(
   ctx.clip();
 
   ctx.strokeStyle = strokeStyle;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = strokeWidth*2;
 
   for (const segment of lineSegments) {
     if (
@@ -197,6 +200,7 @@ export async function exportSlicedPdf({
   gridMode,
   gridColor,
   gridSizeIn,
+  gridLineThickness = 1,
   gridPerspectiveAngle = 45,
   gridRotation = 0,
   imageZoom,
@@ -216,7 +220,7 @@ export async function exportSlicedPdf({
   });
 
   const margins = getPageMargins(sliceSize);
-  const exportGridLineColor = gridColor === "black" ? "#000000" : "#ffffff";
+  const exportGridLineColor = GRID_COLORS[gridColor] || "rgba(0,0,0,0.95)";
 
   const { lineSegments, circles } = buildGridPrimitives({
     printedWidthIn,
@@ -296,6 +300,7 @@ export async function exportSlicedPdf({
       tileHeightPx,
       exportDpi,
       exportGridLineColor,
+      gridLineThickness,
     );
 
     const imageDataUrl = canvas.toDataURL("image/jpeg", 0.92);

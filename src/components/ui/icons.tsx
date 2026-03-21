@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { GRID_COLORS } from "../../slicer/gridConstants";
 
 export type SvgIconName =
     | "gridNone"
@@ -7,6 +8,7 @@ export type SvgIconName =
     | "gridCorner"
     | "colorBlack"
     | "colorWhite"
+    | "colorGray"
     ;
 
 const common = {
@@ -66,27 +68,21 @@ export const icons: Record<SvgIconName, () => ReactNode> = {
 
     colorBlack: () => (
         <rect
-            x="0.5"
-            y="0.5"
-            width="19"
-            height="19"
-            fill="black"
-            stroke="black"
-            strokeWidth="1"
+            fill={GRID_COLORS.black}
+            x="0.5" y="0.5" width="19" height="19" stroke="black" strokeWidth="1"
         />
     ),
 
     colorWhite: () => (
         <rect
-            x="0.5"
-            y="0.5"
-            width="19"
-            height="19"
-            fill="white"
-            stroke="black"
-            strokeWidth="1"
+            fill={GRID_COLORS.white}
+            x="0.5" y="0.5" width="19" height="19" stroke="black" strokeWidth="1"
         />
     ),
-
-
+    colorGray: () => (
+        <rect
+            fill={GRID_COLORS.gray}
+            x="0.5" y="0.5" width="19" height="19" stroke="black" strokeWidth="1"
+        />
+    ),
 };

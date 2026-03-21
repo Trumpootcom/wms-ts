@@ -25,7 +25,7 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                 overflowY: "auto",
             }}
         >
-            <h2 style={{ marginTop: 0, marginBottom: "5px" }}>Controls</h2>
+            {/* <h2 style={{ marginTop: 0, marginBottom: "5px" }}>Controls</h2> */}
 
 
             <PanelSection title="Image Controls">
@@ -94,7 +94,7 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     max={200}
                     stepInput={1}
                     stepSlider={1}
-//                    suffix="%"
+                    //                    suffix="%"
                     onChange={(value) => slicer.setImageZoom(value)}
                 />
 
@@ -160,6 +160,7 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     onChange={(v) => slicer.setGridColor(v)}
                     options={[
                         { value: "black", icon: <SvgIcon name="colorBlack" size={20} />, title: "Black" },
+                        { value: "gray", icon: <SvgIcon name="colorGray" size={20} />, title: "Gray" },
                         { value: "white", icon: <SvgIcon name="colorWhite" size={20} />, title: "White" },
                     ]}
                 />
@@ -171,7 +172,17 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     defaultValue={DEFAULT_GRID_SIZE_IN}
                     stepInput={0.1}
                     stepSlider={0.1}
-                    onChange={(value) => {slicer.setGridSizeIn(value as GridSize);}}
+                    onChange={(value) => { slicer.setGridSizeIn(value as GridSize); }}
+                />
+                <NumberWithSlider
+                    label="Stroke"
+                    value={slicer.gridLineThickness}
+                    min={1}
+                    max={5}
+                    defaultValue={1}
+                    stepSlider={0.5}
+                    stepInput={0.5}
+                    onChange={slicer.setGridLineThickness}
                 />
             </PanelSection>
 
