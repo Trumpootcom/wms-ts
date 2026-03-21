@@ -54,6 +54,10 @@ export function useSlicerState() {
     gamma: 1,
   });
 
+  const [imageZoom, setImageZoom] = useState(100);
+  const [imageOffsetX, setImageOffsetX] = useState(0);
+  const [imageOffsetY, setImageOffsetY] = useState(0);
+
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -220,6 +224,9 @@ export function useSlicerState() {
         gridPerspectiveAngle,
         gridRotation,
         imageAdjustments,
+        imageZoom,
+        imageOffsetX,
+        imageOffsetY,
         exportDpi: EXPORT_DPI,
         onProgress: setExportMessage,
       });
@@ -265,15 +272,32 @@ export function useSlicerState() {
     gridPerspectiveAngle,
     gridRotation,
     gridColor,
-    sliceSize,
     gridSizeIn,
+    sliceSize,
 
-    isExporting,
-    exportMessage,
+    imageZoom,
+    imageOffsetX,
+    imageOffsetY,
 
     sliceEstimate,
     previewStage,
     sourceSizeReport,
+
+    isExporting,
+    exportMessage,
+
+    imageAdjustments,
+
+    setGridMode,
+    setGridPerspectiveAngle,
+    setGridRotation,
+    setGridColor,
+    setGridSizeIn,
+    setSliceSize,
+
+    setImageZoom,
+    setImageOffsetX,
+    setImageOffsetY,
 
     handleFileUpload,
     updateWidth,
@@ -281,16 +305,9 @@ export function useSlicerState() {
     handleAspectRatioToggle,
     handleExportPdf,
 
-    setGridMode,
-    setGridPerspectiveAngle,
-    setGridRotation,
-    setGridColor,
-    setSliceSize,
-    setGridSizeIn,
-
-    exportDpi: EXPORT_DPI,
-    imageAdjustments,
     updateImageAdjustment,
     resetImageAdjustments,
+
+    exportDpi: EXPORT_DPI,
   };
 }

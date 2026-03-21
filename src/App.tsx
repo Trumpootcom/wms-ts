@@ -73,6 +73,9 @@ function App() {
           sourcePixelHeight={slicer.sourcePixelHeight}
           exportDpi={slicer.exportDpi}
           imageAdjustments={slicer.imageAdjustments}
+          imageZoom={slicer.imageZoom}
+          imageOffsetX={slicer.imageOffsetX}
+          imageOffsetY={slicer.imageOffsetY}
         />
       </main>
     </div>

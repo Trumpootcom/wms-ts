@@ -7,6 +7,7 @@ import { controlLabelStyle } from "./ui/uiStyles.ts";
 import ColorSwatchIcon from "./ui/ColorSwatchIcon.tsx";
 import LabeledSegmentedControl from "./ui/LabeledSegmentedControl";
 import SvgIcon from "./ui/SvgIcon";
+import type { GridSize } from "../slicer/types.ts";
 import { DEFAULT_GRID_SIZE_IN, DEFAULT_HEIGHT_IN, DEFAULT_WIDTH_IN } from "../slicer/defaults.ts";
 
 type ControlPanelProps = {
@@ -31,7 +32,7 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                 <div style={{ marginBottom: "5px" }}>
                     <input type="file" accept="image/*" onChange={slicer.handleFileUpload} />
                 </div>
-{/*}
+                {/*}
                 <LabeledSegmentedControl
                     label="Image Adjustments"
                     value="restore"
@@ -85,6 +86,39 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     stepSlider={0.1}
                     onChange={(value) => slicer.updateImageAdjustment("gamma", value)}
                 />
+                <NumberWithSlider
+                    label="Zoom"
+                    value={slicer.imageZoom}
+                    defaultValue={100}
+                    min={100}
+                    max={200}
+                    stepInput={1}
+                    stepSlider={1}
+//                    suffix="%"
+                    onChange={(value) => slicer.setImageZoom(value)}
+                />
+
+                <NumberWithSlider
+                    label="Offset X"
+                    value={slicer.imageOffsetX}
+                    defaultValue={0}
+                    min={-100}
+                    max={100}
+                    stepInput={1}
+                    stepSlider={1}
+                    onChange={(value) => slicer.setImageOffsetX(value)}
+                />
+
+                <NumberWithSlider
+                    label="Offset Y"
+                    value={slicer.imageOffsetY}
+                    defaultValue={0}
+                    min={-100}
+                    max={100}
+                    stepInput={1}
+                    stepSlider={1}
+                    onChange={(value) => slicer.setImageOffsetY(value)}
+                />
 
             </PanelSection>
             <PanelSection title="Grid Controls">
@@ -132,16 +166,16 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                 <NumberWithSlider
                     label="Size"
                     value={slicer.gridSizeIn}
-                    min={0.75}
+                    min={0.5}
                     max={1.5}
                     defaultValue={DEFAULT_GRID_SIZE_IN}
-                    stepInput={0.125}
-                    stepSlider={0.125}
-                    onChange={slicer.setGridSizeIn}
+                    stepInput={0.1}
+                    stepSlider={0.1}
+                    onChange={(value) => {slicer.setGridSizeIn(value as GridSize);}}
                 />
             </PanelSection>
 
-            <PanelSection title="Output Controls">
+            <PanelSection title="Output Controls ">
                 <NumberWithSlider
                     label="Width"
                     value={slicer.printedWidthIn}

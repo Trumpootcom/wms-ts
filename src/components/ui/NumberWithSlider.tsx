@@ -9,6 +9,7 @@ type NumberWithSliderProps = {
     stepInput?: number;
     stepSlider?: number;
     onChange: (value: number) => void;
+    suffix?: string,
 };
 
 function NumberWithSlider({
@@ -20,6 +21,7 @@ function NumberWithSlider({
     stepInput = 0.1,
     stepSlider = 0.5,
     onChange,
+    suffix,
 }: NumberWithSliderProps) {
 
     const isModified = value !== defaultValue;
@@ -40,7 +42,7 @@ function NumberWithSlider({
                 title={`Reset to default (${defaultValue})`}
                 style={{
                     ...controlLabelStyle,
-                    
+
                     flex: "0 0 100px",
 
                     padding: "2px 6px",
@@ -97,7 +99,9 @@ function NumberWithSlider({
                         borderRadius: "4px",
                         background: "#f9fafb",
                     }}
+
                 />
+                {suffix && <span style={{ fontSize: "12px", color: "#4b5563" }}>{suffix}</span>}
             </div>
         </div>
     );

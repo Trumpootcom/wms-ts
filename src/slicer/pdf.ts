@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import { buildGridPrimitives } from "./gridPrimitives.ts";
+import { buildImageViewRect } from "./imageView.ts";
 import type { GridColor, GridMode, SliceEstimate, SliceSize } from "./types.ts";
 import { drawAdjustedSliceToCanvas } from "./imageAdjustments.ts";
 import type { ImageAdjustments } from "./types.ts";
@@ -35,6 +36,9 @@ type ExportPdfArgs = {
   gridSizeIn: number;
   gridPerspectiveAngle?: number;
   gridRotation?: number;
+  imageZoom: number;
+  imageOffsetX: number;
+  imageOffsetY: number;
   imageAdjustments: ImageAdjustments;
   exportDpi: number;
   onProgress?: (message: string) => void;
@@ -193,8 +197,11 @@ export async function exportSlicedPdf({
   gridMode,
   gridColor,
   gridSizeIn,
-  gridPerspectiveAngle = 0,
+  gridPerspectiveAngle = 45,
   gridRotation = 0,
+  imageZoom,
+  imageOffsetX,
+  imageOffsetY,
   imageAdjustments,
   exportDpi,
   onProgress,
@@ -221,6 +228,16 @@ export async function exportSlicedPdf({
     dashCount: 4,
   });
 
+  const imageViewRect = buildImageViewRect({
+    sourceImageWidth: sourceImage.width,
+    sourceImageHeight: sourceImage.height,
+    printedWidthIn,
+    printedHeightIn,
+    imageZoom,
+    imageOffsetX,
+    imageOffsetY,
+  });
+
   for (let i = 0; i < sliceEstimate.tiles.length; i++) {
     const tile = sliceEstimate.tiles[i];
 
@@ -244,10 +261,16 @@ export async function exportSlicedPdf({
       throw new Error("Could not create export canvas.");
     }
 
-    const sx = (tile.xIn / printedWidthIn) * sourceImage.width;
-    const sy = (tile.yIn / printedHeightIn) * sourceImage.height;
-    const sw = (tile.widthIn / printedWidthIn) * sourceImage.width;
-    const sh = (tile.heightIn / printedHeightIn) * sourceImage.height;
+    const sx =
+      imageViewRect.sourceX +
+      (tile.xIn / printedWidthIn) * imageViewRect.sourceWidth;
+    const sy =
+      imageViewRect.sourceY +
+      (tile.yIn / printedHeightIn) * imageViewRect.sourceHeight;
+    const sw =
+      (tile.widthIn / printedWidthIn) * imageViewRect.sourceWidth;
+    const sh =
+      (tile.heightIn / printedHeightIn) * imageViewRect.sourceHeight;
 
     ctx.save();
     drawAdjustedSliceToCanvas({

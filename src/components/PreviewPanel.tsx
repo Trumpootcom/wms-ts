@@ -6,6 +6,7 @@ import type {
     SliceEstimate,
     SliceSize,
 } from "../slicer/types.ts";
+import { buildImageViewRect } from "../slicer/imageView.ts";
 import { formatInches, formatPercent } from "../utils/format.ts";
 import SvgGridLayer from "./ui/SvgGridLayer";
 
@@ -36,6 +37,9 @@ type PreviewPanelProps = {
     sourcePixelHeight: number | null;
     exportDpi: number;
     imageAdjustments: ImageAdjustments;
+    imageZoom: number;
+    imageOffsetX: number;
+    imageOffsetY: number;
 };
 
 function PreviewPanel({
@@ -55,11 +59,11 @@ function PreviewPanel({
     sourcePixelHeight,
     exportDpi,
     imageAdjustments,
+    imageZoom,
+    imageOffsetX,
+    imageOffsetY,
 }: PreviewPanelProps) {
     const infoPaneHeight = 170;
-
-    const previewGridLineColor =
-        gridColor === "black" ? "rgba(0,0,0,0.65)" : "rgba(255,255,255,0.85)";
 
     const sliceLineColor =
         gridColor === "black" ? "rgba(220, 38, 38, 0.95)" : "rgba(239, 68, 68, 0.95)";
@@ -92,21 +96,40 @@ function PreviewPanel({
         frameWidthPx = frameHeightPx * stageAspect;
     }
 
-    const imageAspect =
-        sourcePixelWidth && sourcePixelHeight
-            ? sourcePixelWidth / sourcePixelHeight
-            : stageAspect;
+    let previewImageStyle: React.CSSProperties = {
+        width: "100%",
+        height: "100%",
+        objectFit: "fill",
+        display: "block",
+        filter: imageFilter,
+    };
 
-    let imageBoxWidthPx = frameWidthPx;
-    let imageBoxHeightPx = imageBoxWidthPx / imageAspect;
+    if (sourcePixelWidth && sourcePixelHeight) {
+        const viewRect = buildImageViewRect({
+            sourceImageWidth: sourcePixelWidth,
+            sourceImageHeight: sourcePixelHeight,
+            printedWidthIn,
+            printedHeightIn,
+            imageZoom,
+            imageOffsetX,
+            imageOffsetY,
+        });
 
-    if (imageBoxHeightPx > frameHeightPx) {
-        imageBoxHeightPx = frameHeightPx;
-        imageBoxWidthPx = imageBoxHeightPx * imageAspect;
+        const scaleX = frameWidthPx / viewRect.sourceWidth;
+        const scaleY = frameHeightPx / viewRect.sourceHeight;
+
+        previewImageStyle = {
+            position: "absolute",
+            left: `${-viewRect.sourceX * scaleX}px`,
+            top: `${-viewRect.sourceY * scaleY}px`,
+            width: `${sourcePixelWidth * scaleX}px`,
+            height: `${sourcePixelHeight * scaleY}px`,
+            display: "block",
+            filter: imageFilter,
+            maxWidth: "none",
+            maxHeight: "none",
+        };
     }
-
-    const imageBoxLeftPx = (frameWidthPx - imageBoxWidthPx) / 2;
-    const imageBoxTopPx = (frameHeightPx - imageBoxHeightPx) / 2;
 
     return (
         <section
@@ -133,21 +156,22 @@ function PreviewPanel({
                     border: "1px solid #9ca3af",
                 }}
             >
-<div
-    id="mapStage"
-    style={{
-        position: "relative",
-        width: `${frameWidthPx}px`,
-        height: `${frameHeightPx}px`,
-        border: "1px solid #9ca3af",
-        background: "#e5e7eb",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-        overflow: "hidden",
-        flexShrink: 0,
-    }}
->
+                <div
+                    id="mapStage"
+                    style={{
+                        position: "relative",
+                        width: `${frameWidthPx}px`,
+                        height: `${frameHeightPx}px`,
+                        border: "1px solid #9ca3af",
+                        background: "#e5e7eb",
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                        overflow: "hidden",
+                        flexShrink: 0,
+                    }}
+                >
                     {imageUrl ? (
-                        <div id="image"
+                        <div
+                            id="image"
                             style={{
                                 position: "absolute",
                                 inset: 0,
@@ -159,14 +183,9 @@ function PreviewPanel({
                             <img
                                 src={imageUrl}
                                 alt="Uploaded map preview"
-                                style={{
-                                    width: "100%",
-                                    height: "100%",
-                                    objectFit: "fill",
-                                    display: "block",
-                                    filter: imageFilter,
-                                }}
+                                style={previewImageStyle}
                             />
+
                             <SvgGridLayer
                                 printedWidthIn={printedWidthIn}
                                 printedHeightIn={printedHeightIn}
@@ -176,7 +195,9 @@ function PreviewPanel({
                                 gridColor={gridColor}
                                 gridSizeIn={gridSizeIn}
                             />
-                            <div id="page-slice-overlay"
+
+                            <div
+                                id="page-slice-overlay"
                                 style={{
                                     position: "absolute",
                                     inset: 0,
@@ -247,11 +268,15 @@ function PreviewPanel({
                         </div>
                     )}
 
+                    <div>Zoom: {imageZoom}%</div>
+                    <div>Offset X: {imageOffsetX}</div>
+                    <div>Offset Y: {imageOffsetY}</div>
                     <div>Brightness: {imageAdjustments.brightness}</div>
                     <div>Contrast: {imageAdjustments.contrast}</div>
                     <div>Saturation: {imageAdjustments.saturation}</div>
                     <div>Gamma: {imageAdjustments.gamma}</div>
                 </div>
+
                 <div>
                     <div style={{ fontWeight: 700, marginBottom: "6px", color: "#111827" }}>
                         Map
@@ -279,7 +304,6 @@ function PreviewPanel({
                     <div>
                         Map size: {formatInches(mapWidthFt)} ft × {formatInches(mapHeightFt)} ft
                     </div>
-
                 </div>
 
                 <div>
@@ -288,19 +312,13 @@ function PreviewPanel({
                     </div>
 
                     <div>Slice format: {sliceSizeLabel}</div>
-
                     <div>
                         Page array: {sliceEstimate.cols} × {sliceEstimate.rows}
                     </div>
-
-                    <div>
-                        Total pages: {sliceEstimate.total}
-                    </div>
-
+                    <div>Total pages: {sliceEstimate.total}</div>
                     <div>Export DPI: {exportDpi}</div>
                 </div>
             </div>
-
         </section>
     );
 }
