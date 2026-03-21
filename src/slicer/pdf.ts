@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import { drawCornerGrid, drawDashedGrid, drawLineGrid } from "./grid.ts";
+import { buildGridLineSegments } from "./gridPrimitives.ts";
 import type { GridColor, GridMode, SliceEstimate, SliceSize } from "./types.ts";
 import { drawAdjustedSliceToCanvas } from "./imageAdjustments.ts";
 import type { ImageAdjustments } from "./types.ts";
@@ -40,6 +40,96 @@ type ExportPdfArgs = {
   onProgress?: (message: string) => void;
 };
 
+type PdfLineSegment = {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+};
+
+function isPointInTile(
+  xIn: number,
+  yIn: number,
+  tileXIn: number,
+  tileYIn: number,
+  tileWidthIn: number,
+  tileHeightIn: number,
+): boolean {
+  return (
+    xIn >= tileXIn &&
+    xIn <= tileXIn + tileWidthIn &&
+    yIn >= tileYIn &&
+    yIn <= tileYIn + tileHeightIn
+  );
+}
+
+function doesSegmentIntersectTile(
+  segment: PdfLineSegment,
+  tileXIn: number,
+  tileYIn: number,
+  tileWidthIn: number,
+  tileHeightIn: number,
+): boolean {
+  const left = tileXIn;
+  const right = tileXIn + tileWidthIn;
+  const top = tileYIn;
+  const bottom = tileYIn + tileHeightIn;
+
+  if (
+    isPointInTile(segment.x1, segment.y1, tileXIn, tileYIn, tileWidthIn, tileHeightIn) ||
+    isPointInTile(segment.x2, segment.y2, tileXIn, tileYIn, tileWidthIn, tileHeightIn)
+  ) {
+    return true;
+  }
+
+  if (segment.x1 < left && segment.x2 < left) return false;
+  if (segment.x1 > right && segment.x2 > right) return false;
+  if (segment.y1 < top && segment.y2 < top) return false;
+  if (segment.y1 > bottom && segment.y2 > bottom) return false;
+
+  return true;
+}
+
+function drawGridSegmentsOnTileCanvas(
+  ctx: CanvasRenderingContext2D,
+  segments: PdfLineSegment[],
+  tileXIn: number,
+  tileYIn: number,
+  tileWidthPx: number,
+  tileHeightPx: number,
+  dpi: number,
+  strokeStyle: string,
+) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, tileWidthPx, tileHeightPx);
+  ctx.clip();
+
+  ctx.strokeStyle = strokeStyle;
+  ctx.lineWidth = 2;
+
+  for (const segment of segments) {
+    if (
+      !doesSegmentIntersectTile(
+        segment,
+        tileXIn,
+        tileYIn,
+        tileWidthPx / dpi,
+        tileHeightPx / dpi,
+      )
+    ) {
+      continue;
+    }
+
+    ctx.beginPath();
+    ctx.moveTo((segment.x1 - tileXIn) * dpi, (segment.y1 - tileYIn) * dpi);
+    ctx.lineTo((segment.x2 - tileXIn) * dpi, (segment.y2 - tileYIn) * dpi);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
 export async function exportSlicedPdf({
   imageUrl,
   printedWidthIn,
@@ -66,6 +156,19 @@ export async function exportSlicedPdf({
 
   const margins = getPageMargins(sliceSize);
   const exportGridLineColor = gridColor === "black" ? "#000000" : "#ffffff";
+
+  const gridSegments =
+    gridMode === "none"
+      ? []
+      : buildGridLineSegments({
+          printedWidthIn,
+          printedHeightIn,
+          gridMode,
+          gridPerspectiveAngle,
+          gridRotation,
+          gridSizeIn,
+          dashCount: 4,
+        });
 
   for (let i = 0; i < sliceEstimate.tiles.length; i++) {
     const tile = sliceEstimate.tiles[i];
@@ -109,48 +212,14 @@ export async function exportSlicedPdf({
     });
     ctx.restore();
 
-    if (gridMode === "line") {
-      drawLineGrid(
+    if (gridMode !== "none") {
+      drawGridSegmentsOnTileCanvas(
         ctx,
-        tileWidthPx,
-        tileHeightPx,
+        gridSegments,
         tile.xIn,
         tile.yIn,
-        printedWidthIn,
-        printedHeightIn,
-        gridPerspectiveAngle,
-        gridRotation,
-        gridSizeIn,
-        exportDpi,
-        exportGridLineColor,
-      );
-    } else if (gridMode === "dash") {
-      drawDashedGrid(
-        ctx,
         tileWidthPx,
         tileHeightPx,
-        tile.xIn,
-        tile.yIn,
-        printedWidthIn,
-        printedHeightIn,
-        gridPerspectiveAngle,
-        gridRotation,
-        gridSizeIn,
-        exportDpi,
-        exportGridLineColor,
-      );
-    } else if (gridMode === "corner") {
-      drawCornerGrid(
-        ctx,
-        tileWidthPx,
-        tileHeightPx,
-        tile.xIn,
-        tile.yIn,
-        printedWidthIn,
-        printedHeightIn,
-        gridPerspectiveAngle,
-        gridRotation,
-        gridSizeIn,
         exportDpi,
         exportGridLineColor,
       );
