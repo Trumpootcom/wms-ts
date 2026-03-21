@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import { buildGridLineSegments } from "./gridPrimitives.ts";
+import { buildGridPrimitives } from "./gridPrimitives.ts";
 import type { GridColor, GridMode, SliceEstimate, SliceSize } from "./types.ts";
 import { drawAdjustedSliceToCanvas } from "./imageAdjustments.ts";
 import type { ImageAdjustments } from "./types.ts";
@@ -47,6 +47,12 @@ type PdfLineSegment = {
   y2: number;
 };
 
+type PdfCircle = {
+  cx: number;
+  cy: number;
+  r: number;
+};
+
 function isPointInTile(
   xIn: number,
   yIn: number,
@@ -90,9 +96,30 @@ function doesSegmentIntersectTile(
   return true;
 }
 
-function drawGridSegmentsOnTileCanvas(
+function doesCircleIntersectTile(
+  circle: PdfCircle,
+  tileXIn: number,
+  tileYIn: number,
+  tileWidthIn: number,
+  tileHeightIn: number,
+): boolean {
+  const left = tileXIn;
+  const right = tileXIn + tileWidthIn;
+  const top = tileYIn;
+  const bottom = tileYIn + tileHeightIn;
+
+  return !(
+    circle.cx + circle.r < left ||
+    circle.cx - circle.r > right ||
+    circle.cy + circle.r < top ||
+    circle.cy - circle.r > bottom
+  );
+}
+
+function drawGridPrimitivesOnTileCanvas(
   ctx: CanvasRenderingContext2D,
-  segments: PdfLineSegment[],
+  lineSegments: PdfLineSegment[],
+  circles: PdfCircle[],
   tileXIn: number,
   tileYIn: number,
   tileWidthPx: number,
@@ -100,6 +127,9 @@ function drawGridSegmentsOnTileCanvas(
   dpi: number,
   strokeStyle: string,
 ) {
+  const tileWidthIn = tileWidthPx / dpi;
+  const tileHeightIn = tileHeightPx / dpi;
+
   ctx.save();
   ctx.beginPath();
   ctx.rect(0, 0, tileWidthPx, tileHeightPx);
@@ -108,14 +138,14 @@ function drawGridSegmentsOnTileCanvas(
   ctx.strokeStyle = strokeStyle;
   ctx.lineWidth = 2;
 
-  for (const segment of segments) {
+  for (const segment of lineSegments) {
     if (
       !doesSegmentIntersectTile(
         segment,
         tileXIn,
         tileYIn,
-        tileWidthPx / dpi,
-        tileHeightPx / dpi,
+        tileWidthIn,
+        tileHeightIn,
       )
     ) {
       continue;
@@ -124,6 +154,30 @@ function drawGridSegmentsOnTileCanvas(
     ctx.beginPath();
     ctx.moveTo((segment.x1 - tileXIn) * dpi, (segment.y1 - tileYIn) * dpi);
     ctx.lineTo((segment.x2 - tileXIn) * dpi, (segment.y2 - tileYIn) * dpi);
+    ctx.stroke();
+  }
+
+  for (const circle of circles) {
+    if (
+      !doesCircleIntersectTile(
+        circle,
+        tileXIn,
+        tileYIn,
+        tileWidthIn,
+        tileHeightIn,
+      )
+    ) {
+      continue;
+    }
+
+    ctx.beginPath();
+    ctx.arc(
+      (circle.cx - tileXIn) * dpi,
+      (circle.cy - tileYIn) * dpi,
+      circle.r * dpi,
+      0,
+      Math.PI * 2,
+    );
     ctx.stroke();
   }
 
@@ -157,18 +211,15 @@ export async function exportSlicedPdf({
   const margins = getPageMargins(sliceSize);
   const exportGridLineColor = gridColor === "black" ? "#000000" : "#ffffff";
 
-  const gridSegments =
-    gridMode === "none"
-      ? []
-      : buildGridLineSegments({
-          printedWidthIn,
-          printedHeightIn,
-          gridMode,
-          gridPerspectiveAngle,
-          gridRotation,
-          gridSizeIn,
-          dashCount: 4,
-        });
+  const { lineSegments, circles } = buildGridPrimitives({
+    printedWidthIn,
+    printedHeightIn,
+    gridMode,
+    gridPerspectiveAngle,
+    gridRotation,
+    gridSizeIn,
+    dashCount: 4,
+  });
 
   for (let i = 0; i < sliceEstimate.tiles.length; i++) {
     const tile = sliceEstimate.tiles[i];
@@ -212,18 +263,17 @@ export async function exportSlicedPdf({
     });
     ctx.restore();
 
-    if (gridMode !== "none") {
-      drawGridSegmentsOnTileCanvas(
-        ctx,
-        gridSegments,
-        tile.xIn,
-        tile.yIn,
-        tileWidthPx,
-        tileHeightPx,
-        exportDpi,
-        exportGridLineColor,
-      );
-    }
+    drawGridPrimitivesOnTileCanvas(
+      ctx,
+      lineSegments,
+      circles,
+      tile.xIn,
+      tile.yIn,
+      tileWidthPx,
+      tileHeightPx,
+      exportDpi,
+      exportGridLineColor,
+    );
 
     const imageDataUrl = canvas.toDataURL("image/jpeg", 0.92);
 

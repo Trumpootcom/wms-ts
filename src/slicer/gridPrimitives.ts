@@ -13,6 +13,17 @@ export type GridLineSegment = {
   y2: number;
 };
 
+export type GridCircle = {
+  cx: number;
+  cy: number;
+  r: number;
+};
+
+export type GridPrimitives = {
+  lineSegments: GridLineSegment[];
+  circles: GridCircle[];
+};
+
 type Rect = {
   x: number;
   y: number;
@@ -65,7 +76,7 @@ function doesSegmentIntersectRect(
   return true;
 }
 
-export function buildGridLineSegments({
+export function buildGridPrimitives({
   printedWidthIn,
   printedHeightIn,
   gridMode,
@@ -73,11 +84,7 @@ export function buildGridLineSegments({
   gridRotation,
   gridSizeIn,
   dashCount = 4,
-}: BuildGridPrimitiveArgs): GridLineSegment[] {
-  if (gridMode === "none") {
-    return [];
-  }
-
+}: BuildGridPrimitiveArgs): GridPrimitives {
   const pageRect: Rect = {
     x: 0,
     y: 0,
@@ -95,6 +102,9 @@ export function buildGridLineSegments({
 
   const bounds = getLatticeIndexBounds(pageRect, basis, 1);
 
+  const lineSegments: GridLineSegment[] = [];
+  const circles: GridCircle[] = [];
+
   const uLen = getVectorLength(basis.u.x, basis.u.y);
   const vLen = getVectorLength(basis.v.x, basis.v.y);
 
@@ -108,7 +118,28 @@ export function buildGridLineSegments({
     y: basis.v.y / vLen,
   };
 
-  const segments: GridLineSegment[] = [];
+  if (gridMode === "none") {
+    return { lineSegments:[], circles: [] };
+    const radius = gridSizeIn / 2;
+
+    for (let i = bounds.iStart; i < bounds.iEnd; i += 1) {
+      for (let j = bounds.jStart; j < bounds.jEnd; j += 1) {
+        const center = latticeToPaper(i + 0.5, j + 0.5, basis);
+
+        if (!isPointInRect(center, pageRect)) {
+          continue;
+        }
+
+        circles.push({
+          cx: center.x,
+          cy: center.y,
+          r: radius,
+        });
+      }
+    }
+
+    return { lineSegments, circles };
+  }
 
   if (gridMode === "corner") {
     const uHalfStub = uLen / 8;
@@ -122,14 +153,14 @@ export function buildGridLineSegments({
           continue;
         }
 
-        segments.push({
+        lineSegments.push({
           x1: point.x - uUnit.x * uHalfStub,
           y1: point.y - uUnit.y * uHalfStub,
           x2: point.x + uUnit.x * uHalfStub,
           y2: point.y + uUnit.y * uHalfStub,
         });
 
-        segments.push({
+        lineSegments.push({
           x1: point.x - vUnit.x * vHalfStub,
           y1: point.y - vUnit.y * vHalfStub,
           x2: point.x + vUnit.x * vHalfStub,
@@ -147,7 +178,7 @@ export function buildGridLineSegments({
         const pV = latticeToPaper(i, j + 1, basis);
 
         if (doesSegmentIntersectRect(p, pU, pageRect)) {
-          segments.push({
+          lineSegments.push({
             x1: p.x,
             y1: p.y,
             x2: pU.x,
@@ -156,7 +187,7 @@ export function buildGridLineSegments({
         }
 
         if (doesSegmentIntersectRect(p, pV, pageRect)) {
-          segments.push({
+          lineSegments.push({
             x1: p.x,
             y1: p.y,
             x2: pV.x,
@@ -175,15 +206,21 @@ export function buildGridLineSegments({
         const pV = latticeToPaper(i, j + 1, basis);
 
         if (doesSegmentIntersectRect(p, pU, pageRect)) {
-          segments.push(...getDashedEdgeSegments(p, pU, dashCount));
+          lineSegments.push(...getDashedEdgeSegments(p, pU, dashCount));
         }
 
         if (doesSegmentIntersectRect(p, pV, pageRect)) {
-          segments.push(...getDashedEdgeSegments(p, pV, dashCount));
+          lineSegments.push(...getDashedEdgeSegments(p, pV, dashCount));
         }
       }
     }
   }
 
-  return segments;
+  return { lineSegments, circles };
+}
+
+export function buildGridLineSegments(
+  args: BuildGridPrimitiveArgs,
+): GridLineSegment[] {
+  return buildGridPrimitives(args).lineSegments;
 }

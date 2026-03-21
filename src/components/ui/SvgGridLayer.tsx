@@ -1,5 +1,5 @@
 import type { GridColor, GridMode, GridSize } from "../../slicer/types.ts";
-import { buildGridLineSegments } from "../../slicer/gridPrimitives.ts";
+import { buildGridPrimitives } from "../../slicer/gridPrimitives.ts";
 
 type SvgGridLayerProps = {
     printedWidthIn: number;
@@ -20,21 +20,19 @@ function SvgGridLayer({
     gridColor,
     gridSizeIn,
 }: SvgGridLayerProps) {
-    if (gridMode === "none") return null;
-
     const stroke =
         gridColor === "black" ? "rgba(0,0,0,1)" : "rgba(255,255,255,1)";
 
-    const strokeWidth = 0.05;
+    const strokeWidth = 0.03;
 
-    const segments = buildGridLineSegments({
+    const { lineSegments, circles } = buildGridPrimitives({
         printedWidthIn,
         printedHeightIn,
         gridMode,
         gridPerspectiveAngle,
         gridRotation,
         gridSizeIn,
-        dashCount: 4,
+        dashCount: 5,
     });
 
     return (
@@ -50,9 +48,9 @@ function SvgGridLayer({
                 overflow: "hidden",
             }}
         >
-            {segments.map((segment, index) => (
+            {lineSegments.map((segment, index) => (
                 <line
-                    key={`grid-${index}`}
+                    key={`grid-line-${index}`}
                     x1={segment.x1}
                     y1={segment.y1}
                     x2={segment.x2}
@@ -61,6 +59,18 @@ function SvgGridLayer({
                     strokeWidth={strokeWidth}
                     shapeRendering="crispEdges"
                     strokeLinecap="butt"
+                />
+            ))}
+
+            {circles.map((circle, index) => (
+                <circle
+                    key={`grid-circle-${index}`}
+                    cx={circle.cx}
+                    cy={circle.cy}
+                    r={circle.r}
+                    stroke={stroke}
+                    strokeWidth={strokeWidth}
+                    fill="none"
                 />
             ))}
         </svg>
