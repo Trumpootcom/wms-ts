@@ -35,6 +35,8 @@ type ExportPdfArgs = {
   gridMode: GridMode;
   gridColor: GridColor;
   gridSizeIn: number;
+  gridPhaseX?: number;
+  gridPhaseY?: number;
   gridLineThickness?: number;
   gridPerspectiveAngle?: number;
   gridRotation?: number;
@@ -200,6 +202,8 @@ export async function exportSlicedPdf({
   gridMode,
   gridColor,
   gridSizeIn,
+  gridPhaseX,
+  gridPhaseY, 
   gridLineThickness = 1,
   gridPerspectiveAngle = 45,
   gridRotation = 0,
@@ -229,6 +233,8 @@ export async function exportSlicedPdf({
     gridPerspectiveAngle,
     gridRotation,
     gridSizeIn,
+    gridPhaseX,
+    gridPhaseY,
     dashCount: 4,
   });
 

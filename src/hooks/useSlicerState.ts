@@ -225,6 +225,8 @@ export function useSlicerState() {
         gridMode,
         gridColor,
         gridSizeIn,
+        gridPhaseX,
+        gridPhaseY,
         gridLineThickness,
         gridPerspectiveAngle,
         gridRotation,
