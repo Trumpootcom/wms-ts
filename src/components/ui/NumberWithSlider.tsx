@@ -21,35 +21,51 @@ function NumberWithSlider({
     stepSlider = 0.5,
     onChange,
 }: NumberWithSliderProps) {
+
+    const isModified = value !== defaultValue;
+
     return (
         <div
             style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                gap: "12px",
+                gap: "5px",
                 marginBottom: "8px",
             }}
         >
-            <div
+            <button
+                type="button"
+                onClick={() => onChange(defaultValue)}
+                title={`Reset to default (${defaultValue})`}
                 style={{
                     ...controlLabelStyle,
+                    
+                    flex: "0 0 100px",
+
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                    border: "1px solid #9ca3af",
+                    background: isModified ? "#fde68a" : "#e5e7eb",
+
+                    color: isModified ? "#92400e" : "#374151",
+
+                    fontWeight: 600,
+
                     cursor: "pointer",
                     userSelect: "none",
                 }}
-                title={`Click to restore default (${defaultValue})`}
-                onClick={() => onChange(defaultValue)}
             >
                 {label}
-            </div>
+            </button>
 
             <div
                 style={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "flex-end",
-                    gap: "10px",
-                    flex: "0 0 180px",
+                    gap: "5px",
+                    flex: "0 0 200px",
                 }}
             >
                 <input
@@ -60,8 +76,9 @@ function NumberWithSlider({
                     value={value}
                     onChange={(e) => onChange(Number(e.target.value))}
                     style={{
-                        flex: 1,
-                        minWidth: 0,
+                        flex: "1 1 auto",
+                        minWidth: 60,
+                        maxWidth: 140,
                     }}
                 />
 
