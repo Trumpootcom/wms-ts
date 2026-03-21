@@ -65,6 +65,8 @@ function App() {
           gridRotation={slicer.gridRotation}
           gridColor={slicer.gridColor}
           gridSizeIn={slicer.gridSizeIn}
+          gridPhaseX={slicer.gridPhaseX}
+          gridPhaseY={slicer.gridPhaseY}
           gridLineThickness={slicer.gridLineThickness}
           sliceSize={slicer.sliceSize}
           sliceEstimate={slicer.sliceEstimate}

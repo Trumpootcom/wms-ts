@@ -133,6 +133,16 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                         { value: "corner", icon: <SvgIcon name="gridCorner" size={20} />, title: "Corner" },
                     ]}
                 />
+                <LabeledSegmentedControl
+                    label="Color"
+                    value={slicer.gridColor}
+                    onChange={(v) => slicer.setGridColor(v)}
+                    options={[
+                        { value: "black", icon: <SvgIcon name="colorBlack" size={20} />, title: "Black" },
+                        { value: "gray", icon: <SvgIcon name="colorGray" size={20} />, title: "Gray" },
+                        { value: "white", icon: <SvgIcon name="colorWhite" size={20} />, title: "White" },
+                    ]}
+                />
                 <NumberWithSlider
                     label="Iso Angle"
                     value={slicer.gridPerspectiveAngle}
@@ -154,16 +164,6 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     stepInput={1}
                     stepSlider={1}
                 />
-                <LabeledSegmentedControl
-                    label="Color"
-                    value={slicer.gridColor}
-                    onChange={(v) => slicer.setGridColor(v)}
-                    options={[
-                        { value: "black", icon: <SvgIcon name="colorBlack" size={20} />, title: "Black" },
-                        { value: "gray", icon: <SvgIcon name="colorGray" size={20} />, title: "Gray" },
-                        { value: "white", icon: <SvgIcon name="colorWhite" size={20} />, title: "White" },
-                    ]}
-                />
                 <NumberWithSlider
                     label="Size"
                     value={slicer.gridSizeIn}
@@ -183,6 +183,27 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     stepSlider={0.5}
                     stepInput={0.5}
                     onChange={slicer.setGridLineThickness}
+                />
+                <NumberWithSlider
+                    label="X Offset"
+                    value={slicer.gridPhaseX}
+                    min={-1}
+                    max={1}
+                    defaultValue={0}
+                    stepSlider={0.01}
+                    stepInput={0.05}
+                    onChange={slicer.setGridPhaseX}
+                />
+
+                <NumberWithSlider
+                    label="Y Offset"
+                    value={slicer.gridPhaseY}
+                    min={-1}
+                    max={1}
+                    defaultValue={0}
+                    stepSlider={0.01}
+                    stepInput={0.05}
+                    onChange={slicer.setGridPhaseY}
                 />
             </PanelSection>
 

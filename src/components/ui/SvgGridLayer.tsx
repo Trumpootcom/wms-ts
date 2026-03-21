@@ -10,6 +10,8 @@ type SvgGridLayerProps = {
     gridRotation: number;
     gridColor: GridColor;
     gridSizeIn: GridSize;
+    gridPhaseX?: number;
+    gridPhaseY?: number;
     gridLineThickness?: number;
 };
 
@@ -21,6 +23,8 @@ function SvgGridLayer({
     gridRotation,
     gridColor,
     gridSizeIn,
+    gridPhaseX = 0,
+    gridPhaseY = 0,
     gridLineThickness=1,
 }: SvgGridLayerProps) {
     const stroke = GRID_COLORS[gridColor] || "rgba(0,0,0,0.95)";
@@ -34,6 +38,8 @@ function SvgGridLayer({
         gridPerspectiveAngle,
         gridRotation,
         gridSizeIn,
+        gridPhaseX,
+        gridPhaseY,
         dashCount: 5,
     });
 

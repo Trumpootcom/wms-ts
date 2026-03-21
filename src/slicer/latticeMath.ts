@@ -82,43 +82,50 @@ export function getGridBasis(
   gridPerspectiveAngle: number,
   gridRotation: number,
   gridSizeIn: number,
+  gridPhaseX: number = 0,
+  gridPhaseY: number = 0,
 ): Basis {
   const center = {
     x: printedWidthIn / 2,
     y: printedHeightIn / 2,
   };
 
-  if (gridPerspectiveAngle === 0) {
-    const u0: Vector = { x: gridSizeIn, y: 0 };
-    const v0: Vector = { x: 0, y: gridSizeIn };
+  let u0: Vector;
+  let v0: Vector;
 
-    return {
-      origin: rotatePoint({ x: 0, y: 0 }, center, gridRotation),
-      u: rotateVector(u0, gridRotation),
-      v: rotateVector(v0, gridRotation),
+  if (gridPerspectiveAngle === 0) {
+    u0 = { x: gridSizeIn, y: 0 };
+    v0 = { x: 0, y: gridSizeIn };
+  } else {
+    const alpha = degToRad(gridPerspectiveAngle);
+
+    const sin2a = Math.sin(2 * alpha);
+    const sideLength =
+      Math.abs(sin2a) < EPSILON ? gridSizeIn : gridSizeIn / sin2a;
+
+    u0 = {
+      x: sideLength * Math.cos(alpha),
+      y: sideLength * Math.sin(alpha),
+    };
+
+    v0 = {
+      x: sideLength * Math.cos(alpha),
+      y: -sideLength * Math.sin(alpha),
     };
   }
 
-  const alpha = degToRad(gridPerspectiveAngle);
+  const u = rotateVector(u0, gridRotation);
+  const v = rotateVector(v0, gridRotation);
 
-  const sin2a = Math.sin(2 * alpha);
-  const sideLength =
-    Math.abs(sin2a) < EPSILON ? gridSizeIn : gridSizeIn / sin2a;
-
-  const u0: Vector = {
-    x: sideLength * Math.cos(alpha),
-    y: sideLength * Math.sin(alpha),
-  };
-
-  const v0: Vector = {
-    x: sideLength * Math.cos(alpha),
-    y: -sideLength * Math.sin(alpha),
-  };
+  const baseOrigin = rotatePoint({ x: 0, y: 0 }, center, gridRotation);
 
   return {
-    origin: rotatePoint({ x: 0, y: 0 }, center, gridRotation),
-    u: rotateVector(u0, gridRotation),
-    v: rotateVector(v0, gridRotation),
+    origin: {
+      x: baseOrigin.x + gridPhaseX * u.x + gridPhaseY * v.x,
+      y: baseOrigin.y + gridPhaseX * u.y + gridPhaseY * v.y,
+    },
+    u,
+    v,
   };
 }
 

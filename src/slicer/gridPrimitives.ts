@@ -38,6 +38,8 @@ type BuildGridPrimitiveArgs = {
   gridPerspectiveAngle: number;
   gridRotation: number;
   gridSizeIn: number;
+  gridPhaseX?: number;
+  gridPhaseY?: number;
   dashCount?: number;
 };
 
@@ -83,6 +85,8 @@ export function buildGridPrimitives({
   gridPerspectiveAngle,
   gridRotation,
   gridSizeIn,
+  gridPhaseX = 0,
+  gridPhaseY = 0,
   dashCount = 4,
 }: BuildGridPrimitiveArgs): GridPrimitives {
   const pageRect: Rect = {
@@ -98,6 +102,8 @@ export function buildGridPrimitives({
     gridPerspectiveAngle,
     gridRotation,
     gridSizeIn,
+    gridPhaseX,
+    gridPhaseY,
   );
 
   const bounds = getLatticeIndexBounds(pageRect, basis, 1);

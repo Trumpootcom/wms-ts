@@ -59,6 +59,9 @@ export function useSlicerState() {
   const [imageOffsetY, setImageOffsetY] = useState(0);
   const [gridLineThickness, setGridLineThickness] = useState<number>(1);
 
+  const [gridPhaseX, setGridPhaseX] = useState<number>(0);
+  const [gridPhaseY, setGridPhaseY] = useState<number>(0);
+
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -275,6 +278,8 @@ export function useSlicerState() {
     gridRotation,
     gridColor,
     gridSizeIn,
+    gridPhaseX,
+    gridPhaseY,
     gridLineThickness,
     sliceSize,
 
@@ -296,6 +301,8 @@ export function useSlicerState() {
     setGridRotation,
     setGridColor,
     setGridSizeIn,
+    setGridPhaseX,
+    setGridPhaseY,
     setGridLineThickness,
     setSliceSize,
 

@@ -26,6 +26,8 @@ type PreviewPanelProps = {
     gridRotation: number;
     gridColor: GridColor;
     gridSizeIn: GridSize;
+    gridPhaseX?: number;
+    gridPhaseY?: number;
     gridLineThickness?: number;
     sliceSize: SliceSize;
     sliceEstimate: SliceEstimate;
@@ -52,6 +54,8 @@ function PreviewPanel({
     gridRotation,
     gridColor,
     gridSizeIn,
+    gridPhaseX,
+    gridPhaseY,
     gridLineThickness,
     sliceSize,
     sliceEstimate,
@@ -196,6 +200,8 @@ const sliceLineColor =
                                 gridRotation={gridRotation}
                                 gridColor={gridColor}
                                 gridSizeIn={gridSizeIn}
+                                gridPhaseX={gridPhaseX}
+                                gridPhaseY={gridPhaseY}
                                 gridLineThickness={gridLineThickness}
                             />
 

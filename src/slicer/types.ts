@@ -27,3 +27,15 @@ export type SliceEstimate = {
   total: number;
   tiles: Tile[];
 };
+
+export type GridSettings = {
+  mode: GridMode;
+  color: GridColor;
+  sizeIn: GridSize;
+
+  phaseX: number;
+  phaseY: number;
+
+  rotation: number;
+  perspectiveAngle: number;
+};
