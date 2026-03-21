@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import {
   buildSliceEstimate,
   clamp,
-  getPreviewStageSize,
   roundToTenth,
 } from "../slicer/math.ts";
 import { exportSlicedPdf } from "../slicer/pdf.ts";
@@ -13,8 +12,6 @@ import {
   EXPORT_DPI,
   MAX_SIZE_IN,
   MIN_SIZE_IN,
-  PREVIEW_MAX_HEIGHT_PX,
-  PREVIEW_MAX_WIDTH_PX,
 } from "../slicer/defaults.ts";
 import type {
   GridColor,
@@ -168,17 +165,6 @@ export function useSlicerState() {
     [printedWidthIn, printedHeightIn, sliceSize],
   );
 
-  const previewStage = useMemo(
-    () =>
-      getPreviewStageSize(
-        printedWidthIn,
-        printedHeightIn,
-        PREVIEW_MAX_WIDTH_PX,
-        PREVIEW_MAX_HEIGHT_PX,
-      ),
-    [printedWidthIn, printedHeightIn],
-  );
-
   const sourceSizeReport = useMemo(() => {
     if (!imageAspectRatio) return null;
 
@@ -290,7 +276,6 @@ export function useSlicerState() {
     imageOffsetY,
 
     sliceEstimate,
-    previewStage,
     sourceSizeReport,
 
     isExporting,

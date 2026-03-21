@@ -9,6 +9,7 @@ import type {
 import { buildImageViewRect } from "../slicer/imageView.ts";
 import { formatInches, formatPercent } from "../utils/format.ts";
 import SvgGridLayer from "./ui/SvgGridLayer";
+import { useLayoutEffect, useRef, useState } from "react";
 
 type SourceSizeReport = {
     sourceWidthIn: number;
@@ -31,10 +32,6 @@ type PreviewPanelProps = {
     gridLineThickness?: number;
     sliceSize: SliceSize;
     sliceEstimate: SliceEstimate;
-    previewStage: {
-        width: number;
-        height: number;
-    };
     sourceSizeReport: SourceSizeReport | null;
     sourcePixelWidth: number | null;
     sourcePixelHeight: number | null;
@@ -59,7 +56,6 @@ function PreviewPanel({
     gridLineThickness,
     sliceSize,
     sliceEstimate,
-    previewStage,
     sourceSizeReport,
     sourcePixelWidth,
     sourcePixelHeight,
@@ -70,9 +66,37 @@ function PreviewPanel({
     imageOffsetY,
 }: PreviewPanelProps) {
     const infoPaneHeight = 170;
+    const previewPaddingPx = 10;
+    const previewStageContainerRef = useRef<HTMLDivElement | null>(null);
+    const [previewStage, setPreviewStage] = useState({ width: 1, height: 1 });
 
-const sliceLineColor =
-    gridColor === "black" ? "rgba(220, 38, 38, 0.95)" : "rgba(239, 68, 68, 0.95)";
+    useLayoutEffect(() => {
+        const node = previewStageContainerRef.current;
+        if (!node) return;
+
+        const updateSize = () => {
+            const stageWidth = Math.max(node.clientWidth - previewPaddingPx * 2, 1);
+            const stageHeight = Math.max(node.clientHeight - previewPaddingPx * 2, 1);
+
+            setPreviewStage({
+                width: stageWidth,
+                height: stageHeight,
+            });
+        };
+
+        updateSize();
+
+        const observer = new ResizeObserver(() => {
+            updateSize();
+        });
+
+        observer.observe(node);
+
+        return () => observer.disconnect();
+    }, []);
+
+    const sliceLineColor =
+        gridColor === "black" ? "rgba(220, 38, 38, 0.95)" : "rgba(239, 68, 68, 0.95)";
 
     const mapWidthFt = (printedWidthIn / gridSizeIn) * 5;
     const mapHeightFt = (printedHeightIn / gridSizeIn) * 5;
@@ -94,6 +118,8 @@ const sliceLineColor =
     const gridWidthCount = printedWidthIn / gridSizeIn;
     const gridHeightCount = printedHeightIn / gridSizeIn;
 
+
+
     let frameWidthPx = stageWidth;
     let frameHeightPx = frameWidthPx / stageAspect;
 
@@ -101,6 +127,18 @@ const sliceLineColor =
         frameHeightPx = stageHeight;
         frameWidthPx = frameHeightPx * stageAspect;
     }
+
+    console.log({
+        previewStageWidth: previewStage.width,
+        previewStageHeight: previewStage.height,
+        stageWidth,
+        stageHeight,
+        stageAspect,
+        frameWidthPx,
+        frameHeightPx,
+        printedWidthIn,
+        printedHeightIn,
+    });
 
     let previewImageStyle: React.CSSProperties = {
         width: "100%",
@@ -152,14 +190,17 @@ const sliceLineColor =
             <h2 style={{ margin: "6px" }}>Preview</h2>
 
             <div
+                ref={previewStageContainerRef}
                 style={{
                     minHeight: 0,
+                    borderRadius: "10px",
                     overflow: "hidden",
-                    padding: "12px",
+                    padding: `${previewPaddingPx}px`,
                     boxSizing: "border-box",
                     display: "grid",
                     placeItems: "center",
                     border: "1px solid #9ca3af",
+                    background: "#e5e7eb",
                 }}
             >
                 <div
@@ -169,7 +210,8 @@ const sliceLineColor =
                         width: `${frameWidthPx}px`,
                         height: `${frameHeightPx}px`,
                         border: "1px solid #9ca3af",
-                        background: "#e5e7eb",
+                        //                        background: "#e5e7eb",
+                        background: "#bbf7d0",
                         boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
                         overflow: "hidden",
                         flexShrink: 0,
@@ -321,13 +363,18 @@ const sliceLineColor =
                     </div>
 
                     <div>Slice format: {sliceSizeLabel}</div>
-                    <div>
+                    {/*<div>
                         Page array: {sliceEstimate.cols} × {sliceEstimate.rows}
                     </div>
                     <div>Total pages: {sliceEstimate.total}</div>
-                    <div>Export DPI: {exportDpi}</div>
+                    <div>Export DPI: {exportDpi}</div>*/}
+                    <div>previewStage: {Math.round(previewStage.width)} × {Math.round(previewStage.height)}</div>
+                    <div>frame: {Math.round(frameWidthPx)} × {Math.round(frameHeightPx)}</div>
+                    <div>unused X: {Math.round(previewStage.width - frameWidthPx)}</div>
+                    <div>unused Y: {Math.round(previewStage.height - frameHeightPx)}</div>
                 </div>
             </div>
+
         </section>
     );
 }

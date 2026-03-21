@@ -6,6 +6,7 @@ import trumpoot from "./assets/trumpoot.svg";
 function App() {
   const slicer = useSlicerState();
 
+
   return (
     <div
       style={{
@@ -40,46 +41,60 @@ function App() {
           }}
         />
       </header>
+
       <main
         style={{
           display: "grid",
-          gridTemplateColumns: "340px 1px 1fr",
+          gridTemplateColumns: "340px 1px minmax(0, 1fr)",
           gap: "0",
           padding: "0",
           height: "100%",
+          minHeight: 0,
+          minWidth: 0,
         }}
       >
         <ControlPanel slicer={slicer} />
+
         <div
           style={{
             background: "#9ca3af",
             width: "1px",
           }}
         />
-        <PreviewPanel
-          imageUrl={slicer.imageUrl}
-          printedWidthIn={slicer.printedWidthIn}
-          printedHeightIn={slicer.printedHeightIn}
-          gridMode={slicer.gridMode}
-          gridPerspectiveAngle={slicer.gridPerspectiveAngle}
-          gridRotation={slicer.gridRotation}
-          gridColor={slicer.gridColor}
-          gridSizeIn={slicer.gridSizeIn}
-          gridPhaseX={slicer.gridPhaseX}
-          gridPhaseY={slicer.gridPhaseY}
-          gridLineThickness={slicer.gridLineThickness}
-          sliceSize={slicer.sliceSize}
-          sliceEstimate={slicer.sliceEstimate}
-          previewStage={slicer.previewStage}
-          sourceSizeReport={slicer.sourceSizeReport}
-          sourcePixelWidth={slicer.sourcePixelWidth}
-          sourcePixelHeight={slicer.sourcePixelHeight}
-          exportDpi={slicer.exportDpi}
-          imageAdjustments={slicer.imageAdjustments}
-          imageZoom={slicer.imageZoom}
-          imageOffsetX={slicer.imageOffsetX}
-          imageOffsetY={slicer.imageOffsetY}
-        />
+
+        <div
+          style={{
+            minWidth: 0,
+            minHeight: 0,
+            width: "100%",
+            height: "100%",
+            overflow: "hidden",
+          }}
+        >
+          <PreviewPanel
+            imageUrl={slicer.imageUrl}
+            printedWidthIn={slicer.printedWidthIn}
+            printedHeightIn={slicer.printedHeightIn}
+            gridMode={slicer.gridMode}
+            gridPerspectiveAngle={slicer.gridPerspectiveAngle}
+            gridRotation={slicer.gridRotation}
+            gridColor={slicer.gridColor}
+            gridSizeIn={slicer.gridSizeIn}
+            gridPhaseX={slicer.gridPhaseX}
+            gridPhaseY={slicer.gridPhaseY}
+            gridLineThickness={slicer.gridLineThickness}
+            sliceSize={slicer.sliceSize}
+            sliceEstimate={slicer.sliceEstimate}
+            sourceSizeReport={slicer.sourceSizeReport}
+            sourcePixelWidth={slicer.sourcePixelWidth}
+            sourcePixelHeight={slicer.sourcePixelHeight}
+            exportDpi={slicer.exportDpi}
+            imageAdjustments={slicer.imageAdjustments}
+            imageZoom={slicer.imageZoom}
+            imageOffsetX={slicer.imageOffsetX}
+            imageOffsetY={slicer.imageOffsetY}
+          />
+        </div>
       </main>
     </div>
   );
