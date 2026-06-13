@@ -1,36 +1,53 @@
-// src/components/ui/PanelSection.tsx
 import type { ReactNode } from "react";
 
 type PanelSectionProps = {
   title: string;
   children: ReactNode;
+  bodyPadding?: string;
+  fillHeight?: boolean;
   marginBottom?: string;
 };
 
 function PanelSection({
   title,
   children,
-  marginBottom = "5px",
+  bodyPadding = "10px",
+  fillHeight = false,
+  marginBottom,
 }: PanelSectionProps) {
   return (
     <div
       style={{
         position: "relative",
-        marginBottom,
         borderRadius: "8px",
         background: "#e8eaec",
         overflow: "hidden",
         border: "1px solid #4d525c80",
+        marginBottom,
+        ...(fillHeight
+          ? {
+              height: "100%",
+              minHeight: 0,
+              display: "grid",
+              gridTemplateRows: "auto minmax(0, 1fr)",
+            }
+          : {}),
       }}
     >
-      {/* CONTENT */}
       <div
         style={{
           position: "relative",
           zIndex: 1,
+          ...(fillHeight
+            ? {
+                height: "100%",
+                minHeight: 0,
+                display: "grid",
+                gridTemplateRows: "auto minmax(0, 1fr)",
+              }
+            : {}),
         }}
       >
-        {/* HEADER */}
         <div
           style={{
             fontWeight: 700,
@@ -44,17 +61,22 @@ function PanelSection({
           {title}
         </div>
 
-        {/* BODY */}
         <div
           style={{
-            padding: "10px",
+            padding: bodyPadding,
+            ...(fillHeight
+              ? {
+                  height: "100%",
+                  minHeight: 0,
+                  boxSizing: "border-box",
+                }
+              : {}),
           }}
         >
           {children}
         </div>
       </div>
 
-      {/* SUNKEN OVERLAY */}
       <div
         style={{
           position: "absolute",
@@ -62,8 +84,6 @@ function PanelSection({
           borderRadius: "8px",
           pointerEvents: "none",
           zIndex: 2,
-          /*          boxShadow: "inset 1px 1px 2px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.85)",
-            */
         }}
       />
     </div>

@@ -1,18 +1,18 @@
 import ControlPanel from "./components/ControlPanel.tsx";
 import PreviewPanel from "./components/PreviewPanel.tsx";
+import PreviewInfoRow from "./components/PreviewInfoRow.tsx";
 import { useSlicerState } from "./hooks/useSlicerState.ts";
 import trumpoot from "./assets/trumpoot.svg";
 
 function App() {
   const slicer = useSlicerState();
 
-
   return (
     <div
       style={{
         height: "100vh",
         display: "grid",
-        gridTemplateRows: "auto 1fr",
+        gridTemplateRows: "auto minmax(0, 1fr)",
         background: "#f3f4f6",
         color: "#111827",
         fontFamily: "Arial, sans-serif",
@@ -45,29 +45,26 @@ function App() {
       <main
         style={{
           display: "grid",
-          gridTemplateColumns: "340px 1px minmax(0, 1fr)",
-          gap: "0",
-          padding: "0",
+          gridTemplateColumns: "340px minmax(0, 1fr)",
+          gap: "8px",
           height: "100%",
           minHeight: 0,
           minWidth: 0,
+          overflow: "hidden",
+          padding: "8px", 
+          boxSizing: "border-box",
         }}
       >
         <ControlPanel slicer={slicer} />
 
         <div
           style={{
-            background: "#9ca3af",
-            width: "1px",
-          }}
-        />
-
-        <div
-          style={{
-            minWidth: 0,
+            display: "grid",
+            gridTemplateRows: "minmax(0, 1fr) 300px",
+            gap: "8px",
             minHeight: 0,
-            width: "100%",
-            height: "100%",
+            minWidth: 0,
+            boxSizing: "border-box",
             overflow: "hidden",
           }}
         >
@@ -83,6 +80,24 @@ function App() {
             gridPhaseX={slicer.gridPhaseX}
             gridPhaseY={slicer.gridPhaseY}
             gridLineThickness={slicer.gridLineThickness}
+            sliceSize={slicer.sliceSize}
+            sliceEstimate={slicer.sliceEstimate}
+            sourceSizeReport={slicer.sourceSizeReport}
+            sourcePixelWidth={slicer.sourcePixelWidth}
+            sourcePixelHeight={slicer.sourcePixelHeight}
+            exportDpi={slicer.exportDpi}
+            imageAdjustments={slicer.imageAdjustments}
+            imageZoom={slicer.imageZoom}
+            imageOffsetX={slicer.imageOffsetX}
+            imageOffsetY={slicer.imageOffsetY}
+          />
+
+          <PreviewInfoRow
+            printedWidthIn={slicer.printedWidthIn}
+            printedHeightIn={slicer.printedHeightIn}
+            gridMode={slicer.gridMode}
+            gridColor={slicer.gridColor}
+            gridSizeIn={slicer.gridSizeIn}
             sliceSize={slicer.sliceSize}
             sliceEstimate={slicer.sliceEstimate}
             sourceSizeReport={slicer.sourceSizeReport}

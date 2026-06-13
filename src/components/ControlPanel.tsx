@@ -1,10 +1,6 @@
 import PanelSection from "./ui/PanelSection.tsx";
-import SegmentedControl from "./ui/SegmentedControl.tsx";
 import NumberWithSlider from "./ui/NumberWithSlider.tsx";
 import type { useSlicerState } from "../hooks/useSlicerState.ts";
-import GridModeIcon from "./ui/GridModeIcon.tsx";
-import { controlLabelStyle } from "./ui/uiStyles.ts";
-import ColorSwatchIcon from "./ui/ColorSwatchIcon.tsx";
 import LabeledSegmentedControl from "./ui/LabeledSegmentedControl";
 import SvgIcon from "./ui/SvgIcon";
 import type { GridSize } from "../slicer/types.ts";
@@ -18,31 +14,17 @@ function ControlPanel({ slicer }: ControlPanelProps) {
     return (
         <aside
             style={{
-                background: "#d1d5db",
-                padding: "5px",
-                height: "100%",
-                boxSizing: "border-box",
-                overflowY: "auto",
+                display: "grid",
+                gridAutoRows: "max-content",
+                gap: "8px",
             }}
         >
             {/* <h2 style={{ marginTop: 0, marginBottom: "5px" }}>Controls</h2> */}
-
 
             <PanelSection title="Image Controls">
                 <div style={{ marginBottom: "5px" }}>
                     <input type="file" accept="image/*" onChange={slicer.handleFileUpload} />
                 </div>
-                {/*}
-                <LabeledSegmentedControl
-                    label="Image Adjustments"
-                    value="restore"
-                    onChange={() => slicer.resetImageAdjustments()}
-                    options={[
-                        { value: "restore", title: "↻" }
-
-                    ]}
-                />
-                */}
                 <NumberWithSlider
                     label="Bright"
                     value={slicer.imageAdjustments.brightness}

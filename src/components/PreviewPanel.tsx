@@ -1,382 +1,292 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import type {
-    GridColor,
-    GridMode,
-    GridSize,
-    ImageAdjustments,
-    SliceEstimate,
-    SliceSize,
+  GridColor,
+  GridMode,
+  GridSize,
+  ImageAdjustments,
+  SliceEstimate,
+  SliceSize,
 } from "../slicer/types.ts";
 import { buildImageViewRect } from "../slicer/imageView.ts";
-import { formatInches, formatPercent } from "../utils/format.ts";
 import SvgGridLayer from "./ui/SvgGridLayer";
-import { useLayoutEffect, useRef, useState } from "react";
+import PanelSection from "./ui/PanelSection.tsx";
 
 type SourceSizeReport = {
-    sourceWidthIn: number;
-    sourceHeightIn: number;
-    stretchX: number;
-    stretchY: number;
+  sourceWidthIn: number;
+  sourceHeightIn: number;
+  stretchX: number;
+  stretchY: number;
 };
 
 type PreviewPanelProps = {
-    imageUrl: string | null;
-    printedWidthIn: number;
-    printedHeightIn: number;
-    gridMode: GridMode;
-    gridPerspectiveAngle: number;
-    gridRotation: number;
-    gridColor: GridColor;
-    gridSizeIn: GridSize;
-    gridPhaseX?: number;
-    gridPhaseY?: number;
-    gridLineThickness?: number;
-    sliceSize: SliceSize;
-    sliceEstimate: SliceEstimate;
-    sourceSizeReport: SourceSizeReport | null;
-    sourcePixelWidth: number | null;
-    sourcePixelHeight: number | null;
-    exportDpi: number;
-    imageAdjustments: ImageAdjustments;
-    imageZoom: number;
-    imageOffsetX: number;
-    imageOffsetY: number;
+  imageUrl: string | null;
+  printedWidthIn: number;
+  printedHeightIn: number;
+  gridMode: GridMode;
+  gridPerspectiveAngle: number;
+  gridRotation: number;
+  gridColor: GridColor;
+  gridSizeIn: GridSize;
+  gridPhaseX?: number;
+  gridPhaseY?: number;
+  gridLineThickness?: number;
+  sliceSize: SliceSize;
+  sliceEstimate: SliceEstimate;
+  sourceSizeReport: SourceSizeReport | null;
+  sourcePixelWidth: number | null;
+  sourcePixelHeight: number | null;
+  exportDpi: number;
+  imageAdjustments: ImageAdjustments;
+  imageZoom: number;
+  imageOffsetX: number;
+  imageOffsetY: number;
 };
 
 function PreviewPanel({
-    imageUrl,
-    printedWidthIn,
-    printedHeightIn,
-    gridMode,
-    gridPerspectiveAngle,
-    gridRotation,
-    gridColor,
-    gridSizeIn,
-    gridPhaseX,
-    gridPhaseY,
-    gridLineThickness,
-    sliceSize,
-    sliceEstimate,
-    sourceSizeReport,
-    sourcePixelWidth,
-    sourcePixelHeight,
-    exportDpi,
-    imageAdjustments,
-    imageZoom,
-    imageOffsetX,
-    imageOffsetY,
+  imageUrl,
+  printedWidthIn,
+  printedHeightIn,
+  gridMode,
+  gridPerspectiveAngle,
+  gridRotation,
+  gridColor,
+  gridSizeIn,
+  gridPhaseX,
+  gridPhaseY,
+  gridLineThickness,
+  sliceSize,
+  sourcePixelWidth,
+  sourcePixelHeight,
+  imageAdjustments,
+  imageZoom,
+  imageOffsetX,
+  imageOffsetY,
 }: PreviewPanelProps) {
-    const infoPaneHeight = 170;
-    const previewPaddingPx = 10;
-    const previewStageContainerRef = useRef<HTMLDivElement | null>(null);
-    const [previewStage, setPreviewStage] = useState({ width: 1, height: 1 });
+  const previewPaddingPx = 5;
+  const previewBorderPx = 1;
 
-    useLayoutEffect(() => {
-        const node = previewStageContainerRef.current;
-        if (!node) return;
+  const previewMeasureRef = useRef<HTMLDivElement | null>(null);
+  const [previewStage, setPreviewStage] = useState({ width: 1, height: 1 });
 
-        const updateSize = () => {
-            const stageWidth = Math.max(node.clientWidth - previewPaddingPx * 2, 1);
-            const stageHeight = Math.max(node.clientHeight - previewPaddingPx * 2, 1);
+  useLayoutEffect(() => {
+    const node = previewMeasureRef.current;
+    if (!node) return;
 
-            setPreviewStage({
-                width: stageWidth,
-                height: stageHeight,
-            });
+    const updateSize = () => {
+      const nextWidth = Math.max(
+        node.clientWidth - previewPaddingPx * 2 - previewBorderPx * 2,
+        1
+      );
+      const nextHeight = Math.max(
+        node.clientHeight - previewPaddingPx * 2 - previewBorderPx * 2,
+        1
+      );
+
+      setPreviewStage((prev) => {
+        if (prev.width === nextWidth && prev.height === nextHeight) {
+          return prev;
+        }
+
+        return {
+          width: nextWidth,
+          height: nextHeight,
         };
-
-        updateSize();
-
-        const observer = new ResizeObserver(() => {
-            updateSize();
-        });
-
-        observer.observe(node);
-
-        return () => observer.disconnect();
-    }, []);
-
-    const sliceLineColor =
-        gridColor === "black" ? "rgba(220, 38, 38, 0.95)" : "rgba(239, 68, 68, 0.95)";
-
-    const mapWidthFt = (printedWidthIn / gridSizeIn) * 5;
-    const mapHeightFt = (printedHeightIn / gridSizeIn) * 5;
-
-    const gridModeLabel = gridMode.charAt(0).toUpperCase() + gridMode.slice(1);
-    const sliceSizeLabel = sliceSize === "8x10" ? "8 × 10" : "8 × 10.5";
-
-    const imageFilter = `
-        brightness(${imageAdjustments.brightness}%)
-        contrast(${imageAdjustments.contrast}%)
-        saturate(${imageAdjustments.saturation}%)
-    `;
-
-    const stageAspect = printedWidthIn / printedHeightIn;
-
-    const stageWidth = Math.max(previewStage.width, 1);
-    const stageHeight = Math.max(previewStage.height, 1);
-
-    const gridWidthCount = printedWidthIn / gridSizeIn;
-    const gridHeightCount = printedHeightIn / gridSizeIn;
-
-
-
-    let frameWidthPx = stageWidth;
-    let frameHeightPx = frameWidthPx / stageAspect;
-
-    if (frameHeightPx > stageHeight) {
-        frameHeightPx = stageHeight;
-        frameWidthPx = frameHeightPx * stageAspect;
-    }
-
-    console.log({
-        previewStageWidth: previewStage.width,
-        previewStageHeight: previewStage.height,
-        stageWidth,
-        stageHeight,
-        stageAspect,
-        frameWidthPx,
-        frameHeightPx,
-        printedWidthIn,
-        printedHeightIn,
-    });
-
-    let previewImageStyle: React.CSSProperties = {
-        width: "100%",
-        height: "100%",
-        objectFit: "fill",
-        display: "block",
-        filter: imageFilter,
+      });
     };
 
-    if (sourcePixelWidth && sourcePixelHeight) {
-        const viewRect = buildImageViewRect({
-            sourceImageWidth: sourcePixelWidth,
-            sourceImageHeight: sourcePixelHeight,
-            printedWidthIn,
-            printedHeightIn,
-            imageZoom,
-            imageOffsetX,
-            imageOffsetY,
-        });
+    updateSize();
 
-        const scaleX = frameWidthPx / viewRect.sourceWidth;
-        const scaleY = frameHeightPx / viewRect.sourceHeight;
+    const observer = new ResizeObserver(() => {
+      updateSize();
+    });
 
-        previewImageStyle = {
-            position: "absolute",
-            left: `${-viewRect.sourceX * scaleX}px`,
-            top: `${-viewRect.sourceY * scaleY}px`,
-            width: `${sourcePixelWidth * scaleX}px`,
-            height: `${sourcePixelHeight * scaleY}px`,
-            display: "block",
-            filter: imageFilter,
-            maxWidth: "none",
-            maxHeight: "none",
-        };
-    }
+    observer.observe(node);
 
-    return (
-        <section
-            style={{
-                background: "#f3f4f6",
-                height: "100%",
-                minHeight: 0,
-                boxSizing: "border-box",
-                display: "grid",
-                gridTemplateRows: `auto minmax(0, 1fr) 1px ${infoPaneHeight}px`,
-                overflow: "hidden",
-            }}
+    return () => observer.disconnect();
+  }, []);
+
+  const sliceLineColor =
+    gridColor === "black"
+      ? "rgba(220, 38, 38, 0.95)"
+      : "rgba(239, 68, 68, 0.95)";
+
+  const imageFilter = `
+    brightness(${imageAdjustments.brightness}%)
+    contrast(${imageAdjustments.contrast}%)
+    saturate(${imageAdjustments.saturation}%)
+  `;
+
+  const stageAspect = printedWidthIn / printedHeightIn;
+
+  const stageWidth = Math.max(previewStage.width, 1);
+  const stageHeight = Math.max(previewStage.height, 1);
+
+  let frameWidthPx = stageWidth;
+  let frameHeightPx = frameWidthPx / stageAspect;
+
+  if (frameHeightPx > stageHeight) {
+    frameHeightPx = stageHeight;
+    frameWidthPx = frameHeightPx * stageAspect;
+  }
+
+  frameWidthPx = Math.floor(frameWidthPx);
+  frameHeightPx = Math.floor(frameHeightPx);
+
+  let previewImageStyle: React.CSSProperties = {
+    width: "100%",
+    height: "100%",
+    objectFit: "fill",
+    display: "block",
+    filter: imageFilter,
+  };
+
+  if (sourcePixelWidth && sourcePixelHeight) {
+    const viewRect = buildImageViewRect({
+      sourceImageWidth: sourcePixelWidth,
+      sourceImageHeight: sourcePixelHeight,
+      printedWidthIn,
+      printedHeightIn,
+      imageZoom,
+      imageOffsetX,
+      imageOffsetY,
+    });
+
+    const scaleX = frameWidthPx / viewRect.sourceWidth;
+    const scaleY = frameHeightPx / viewRect.sourceHeight;
+
+    previewImageStyle = {
+      position: "absolute",
+      left: `${-viewRect.sourceX * scaleX}px`,
+      top: `${-viewRect.sourceY * scaleY}px`,
+      width: `${sourcePixelWidth * scaleX}px`,
+      height: `${sourcePixelHeight * scaleY}px`,
+      display: "block",
+      filter: imageFilter,
+      maxWidth: "none",
+      maxHeight: "none",
+    };
+  }
+
+  return (
+    <div
+      style={{
+        height: "100%",
+        minHeight: 0,
+        minWidth: 0,
+      }}
+    >
+    <PanelSection title="Preview" bodyPadding="0px" fillHeight>
+            <div
+          ref={previewMeasureRef}
+          style={{
+            height: "100%",
+            minHeight: 0,
+            minWidth: 0,
+            overflow: "hidden",
+            boxSizing: "border-box",
+          }}
         >
-            <h2 style={{ margin: "6px" }}>Preview</h2>
-
+          <div
+            style={{
+              height: "100%",
+              minHeight: 0,
+              minWidth: 0,
+              padding: `${previewPaddingPx}px`,
+              boxSizing: "border-box",
+              display: "grid",
+              placeItems: "center",
+              border: `${previewBorderPx}px solid #9ca3af`,
+              background: "#e5e7eb",
+              overflow: "hidden",
+            }}
+          >
             <div
-                ref={previewStageContainerRef}
-                style={{
-                    minHeight: 0,
-                    borderRadius: "10px",
-                    overflow: "hidden",
-                    padding: `${previewPaddingPx}px`,
-                    boxSizing: "border-box",
-                    display: "grid",
-                    placeItems: "center",
-                    border: "1px solid #9ca3af",
-                    background: "#e5e7eb",
-                }}
+              id="mapStage"
+              style={{
+                position: "relative",
+                width: `${frameWidthPx}px`,
+                height: `${frameHeightPx}px`,
+                border: "1px solid #9ca3af",
+                background: "#e5e7eb",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                overflow: "hidden",
+                flexShrink: 0,
+              }}
             >
+              {imageUrl ? (
                 <div
-                    id="mapStage"
-                    style={{
-                        position: "relative",
-                        width: `${frameWidthPx}px`,
-                        height: `${frameHeightPx}px`,
-                        border: "1px solid #9ca3af",
-                        //                        background: "#e5e7eb",
-                        background: "#bbf7d0",
-                        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                        overflow: "hidden",
-                        flexShrink: 0,
-                    }}
-                >
-                    {imageUrl ? (
-                        <div
-                            id="image"
-                            style={{
-                                position: "absolute",
-                                inset: 0,
-                                width: "100%",
-                                height: "100%",
-                                overflow: "hidden",
-                            }}
-                        >
-                            <img
-                                src={imageUrl}
-                                alt="Uploaded map preview"
-                                style={previewImageStyle}
-                            />
-
-                            <SvgGridLayer
-                                printedWidthIn={printedWidthIn}
-                                printedHeightIn={printedHeightIn}
-                                gridMode={gridMode}
-                                gridPerspectiveAngle={gridPerspectiveAngle}
-                                gridRotation={gridRotation}
-                                gridColor={gridColor}
-                                gridSizeIn={gridSizeIn}
-                                gridPhaseX={gridPhaseX}
-                                gridPhaseY={gridPhaseY}
-                                gridLineThickness={gridLineThickness}
-                            />
-
-                            <div
-                                id="page-slice-overlay"
-                                style={{
-                                    position: "absolute",
-                                    inset: 0,
-                                    pointerEvents: "none",
-                                    boxSizing: "border-box",
-                                    border: `2px solid ${sliceLineColor}`,
-                                    backgroundImage: `
-                                        linear-gradient(to right, ${sliceLineColor} 2px, transparent 2px),
-                                        linear-gradient(to bottom, ${sliceLineColor} 2px, transparent 2px)
-                                    `,
-                                    backgroundSize: `${(8 / printedWidthIn) * 100}% ${((sliceSize === "8x10" ? 10 : 10.5) / printedHeightIn) * 100}%`,
-                                    backgroundPosition: "0 0, 0 0",
-                                    backgroundRepeat: "repeat",
-                                }}
-                            />
-                        </div>
-                    ) : (
-                        <div
-                            style={{
-                                position: "absolute",
-                                inset: 0,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "#4b5563",
-                                fontSize: "18px",
-                                background:
-                                    "linear-gradient(135deg, rgba(255,255,255,0.55), rgba(0,0,0,0.04))",
-                            }}
-                        >
-                            No image loaded
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div style={{ background: "#d1d5db" }} />
-
-            <div
-                style={{
+                  id="image"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
                     overflow: "hidden",
+                  }}
+                >
+                  <img
+                    src={imageUrl}
+                    alt="Uploaded map preview"
+                    style={previewImageStyle}
+                  />
+
+                  <SvgGridLayer
+                    printedWidthIn={printedWidthIn}
+                    printedHeightIn={printedHeightIn}
+                    gridMode={gridMode}
+                    gridPerspectiveAngle={gridPerspectiveAngle}
+                    gridRotation={gridRotation}
+                    gridColor={gridColor}
+                    gridSizeIn={gridSizeIn}
+                    gridPhaseX={gridPhaseX}
+                    gridPhaseY={gridPhaseY}
+                    gridLineThickness={gridLineThickness}
+                  />
+
+                  <div
+                    id="page-slice-overlay"
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      pointerEvents: "none",
+                      boxSizing: "border-box",
+                      border: `2px solid ${sliceLineColor}`,
+                      backgroundImage: `
+                        linear-gradient(to right, ${sliceLineColor} 2px, transparent 2px),
+                        linear-gradient(to bottom, ${sliceLineColor} 2px, transparent 2px)
+                      `,
+                      backgroundSize: `${(8 / printedWidthIn) * 100}% ${
+                        ((sliceSize === "8x10" ? 10 : 10.5) / printedHeightIn) *
+                        100
+                      }%`,
+                      backgroundPosition: "0 0, 0 0",
+                      backgroundRepeat: "repeat",
+                    }}
+                  />
+                </div>
+              ) : (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                     color: "#4b5563",
-                    lineHeight: 1.5,
-                    fontSize: "14px",
-                    background: "#e5e7eb",
-                    padding: "10px",
-                    boxSizing: "border-box",
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr 1fr",
-                    gap: "16px",
-                }}
-            >
-                <div>
-                    <div style={{ fontWeight: 700, marginBottom: "6px", color: "#111827" }}>
-                        Source
-                    </div>
-
-                    {sourcePixelWidth && sourcePixelHeight && (
-                        <div>
-                            Pixels: {sourcePixelWidth} × {sourcePixelHeight}
-                        </div>
-                    )}
-
-                    {sourceSizeReport && (
-                        <div>
-                            Crop fit: {formatInches(sourceSizeReport.sourceWidthIn)}" ×{" "}
-                            {formatInches(sourceSizeReport.sourceHeightIn)}"
-                        </div>
-                    )}
-
-                    <div>Zoom: {imageZoom}%</div>
-                    <div>Offset X: {imageOffsetX}</div>
-                    <div>Offset Y: {imageOffsetY}</div>
-                    <div>Brightness: {imageAdjustments.brightness}</div>
-                    <div>Contrast: {imageAdjustments.contrast}</div>
-                    <div>Saturation: {imageAdjustments.saturation}</div>
-                    <div>Gamma: {imageAdjustments.gamma}</div>
+                    fontSize: "18px",
+                    background:
+                      "linear-gradient(135deg, rgba(255,255,255,0.55), rgba(0,0,0,0.04))",
+                  }}
+                >
+                  No image loaded
                 </div>
-
-                <div>
-                    <div style={{ fontWeight: 700, marginBottom: "6px", color: "#111827" }}>
-                        Map
-                    </div>
-
-                    <div>
-                        Target: {formatInches(printedWidthIn)}" × {formatInches(printedHeightIn)}"
-                    </div>
-
-                    {sourceSizeReport && (
-                        <div>
-                            Stretch: {formatPercent(sourceSizeReport.stretchX)}% H,{" "}
-                            {formatPercent(sourceSizeReport.stretchY)}% V
-                        </div>
-                    )}
-
-                    <div>
-                        Grid: {gridModeLabel}, {gridColor}, {gridSizeIn}"
-                    </div>
-
-                    <div>
-                        Grid count: {formatInches(gridWidthCount)} × {formatInches(gridHeightCount)}
-                    </div>
-
-                    <div>
-                        Map size: {formatInches(mapWidthFt)} ft × {formatInches(mapHeightFt)} ft
-                    </div>
-                </div>
-
-                <div>
-                    <div style={{ fontWeight: 700, marginBottom: "6px", color: "#111827" }}>
-                        PDF
-                    </div>
-
-                    <div>Slice format: {sliceSizeLabel}</div>
-                    {/*<div>
-                        Page array: {sliceEstimate.cols} × {sliceEstimate.rows}
-                    </div>
-                    <div>Total pages: {sliceEstimate.total}</div>
-                    <div>Export DPI: {exportDpi}</div>*/}
-                    <div>previewStage: {Math.round(previewStage.width)} × {Math.round(previewStage.height)}</div>
-                    <div>frame: {Math.round(frameWidthPx)} × {Math.round(frameHeightPx)}</div>
-                    <div>unused X: {Math.round(previewStage.width - frameWidthPx)}</div>
-                    <div>unused Y: {Math.round(previewStage.height - frameHeightPx)}</div>
-                </div>
+              )}
             </div>
-
-        </section>
-    );
+          </div>
+        </div>
+      </PanelSection>
+    </div>
+  );
 }
 
 export default PreviewPanel;
