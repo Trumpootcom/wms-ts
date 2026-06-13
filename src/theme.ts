@@ -2,9 +2,9 @@ export const theme = {
   app: {
     background: "hsl(42, 25%, 80%)",
     text: "hsl(42 39% 11%)",
-    titlebarFallback: "hsl(42 56% 28%)",
+    titlebarFallback: "hsl(42 45% 14%)",
     titlebarText: "hsl(42 0% 100%)",
-    titlebarTextShadow: "hsl(42 0% 0% / 45%)",
+    titlebarTextShadow: "hsl(42 0% 0% / 75%)",
   },
   panel: {
     background: "hsl(42 33% 85%)",

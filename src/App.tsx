@@ -6,7 +6,7 @@ import titlebarLeft from "./assets/trumpoot_titlebar_a.png";
 import titlebarFill from "./assets/trumpoot_titlebar_b.png";
 import { theme } from "./theme.ts";
 
-const titlebarHeightPx = 45;
+const titlebarHeightPx = 40;
 const titlebarLeftAspectRatio = 171 / 98;
 const titlebarLeftWidthPx = titlebarHeightPx * titlebarLeftAspectRatio;
 
@@ -34,7 +34,7 @@ function App() {
           backgroundSize: "100% 100%",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
-          color: theme.app.titlebarText,
+          color: theme.control.sliderTrackDark,
           padding: "0 14px",
           paddingLeft: `${titlebarLeftWidthPx + 14}px`,
           display: "flex",
@@ -65,7 +65,7 @@ function App() {
             textShadow: `0 1px 2px ${theme.app.titlebarTextShadow}`,
           }}
         >
-          VTT Slicer
+          Map Slicer
         </h1>
       </header>
 
