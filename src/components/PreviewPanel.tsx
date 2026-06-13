@@ -5,10 +5,12 @@ import type {
   GridMode,
   GridSize,
   ImageAdjustments,
+  SliceOrientation,
   SliceEstimate,
   SliceSize,
 } from "../slicer/types.ts";
 import { buildImageViewRect } from "../slicer/imageView.ts";
+import { getTileConfig } from "../slicer/math.ts";
 import { getGridBasis, invert2x2 } from "../slicer/latticeMath.ts";
 import { theme } from "../theme.ts";
 import SvgGridLayer from "./ui/SvgGridLayer";
@@ -34,6 +36,7 @@ type PreviewPanelProps = {
   gridPhaseY?: number;
   gridLineThickness?: number;
   sliceSize: SliceSize;
+  sliceOrientation: SliceOrientation;
   sliceEstimate: SliceEstimate;
   sourceSizeReport: SourceSizeReport | null;
   sourcePixelWidth: number | null;
@@ -83,6 +86,7 @@ function PreviewPanel({
   gridPhaseY,
   gridLineThickness,
   sliceSize,
+  sliceOrientation,
   sourcePixelWidth,
   sourcePixelHeight,
   imageAdjustments,
@@ -144,6 +148,7 @@ function PreviewPanel({
     gridColor === "black"
       ? "rgba(220, 38, 38, 0.95)"
       : "rgba(239, 68, 68, 0.95)";
+  const tileConfig = getTileConfig(sliceSize, sliceOrientation);
 
   const imageFilter = `
     brightness(${imageAdjustments.brightness}%)
@@ -464,10 +469,9 @@ function PreviewPanel({
                       linear-gradient(to right, ${sliceLineColor} 2px, transparent 2px),
                       linear-gradient(to bottom, ${sliceLineColor} 2px, transparent 2px)
                     `,
-                    backgroundSize: `${(8 / printedWidthIn) * 100}% ${
-                      ((sliceSize === "8x10" ? 10 : 10.5) / printedHeightIn) *
-                      100
-                    }%`,
+                    backgroundSize: `${
+                      (tileConfig.widthIn / printedWidthIn) * 100
+                    }% ${(tileConfig.heightIn / printedHeightIn) * 100}%`,
                     backgroundPosition: "0 0, 0 0",
                     backgroundRepeat: "repeat",
                   }}

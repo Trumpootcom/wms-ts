@@ -1,7 +1,8 @@
-export type GridColor = "black" | "white" | "gray";
+export type GridColor = "black" | "white" | "gray" | "red" | "blue";
 export type GridMode = "none" | "line" | "dash" | "corner" ;
 
 export type SliceSize = "8x10" | "8x10.5";
+export type SliceOrientation = "portrait" | "landscape";
 export type GridSize = number;
 
 export type ImageAdjustments = {

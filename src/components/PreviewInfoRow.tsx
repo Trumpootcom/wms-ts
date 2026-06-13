@@ -5,9 +5,11 @@ import type {
   GridMode,
   GridSize,
   ImageAdjustments,
+  SliceOrientation,
   SliceEstimate,
   SliceSize,
 } from "../slicer/types.ts";
+import { getTileConfig } from "../slicer/math.ts";
 import { formatInches, formatPercent } from "../utils/format.ts";
 
 type SourceSizeReport = {
@@ -23,6 +25,7 @@ type PreviewInfoRowProps = {
   gridMode: GridMode;
   gridColor: GridColor;
   gridSizeIn: GridSize;
+  sliceOrientation: SliceOrientation;
   sliceSize: SliceSize;
   sliceEstimate: SliceEstimate;
   sourceSizeReport: SourceSizeReport | null;
@@ -41,6 +44,7 @@ function PreviewInfoRow({
   gridMode,
   gridColor,
   gridSizeIn,
+  sliceOrientation,
   sliceSize,
   sliceEstimate,
   sourceSizeReport,
@@ -56,7 +60,12 @@ function PreviewInfoRow({
   const mapHeightFt = (printedHeightIn / gridSizeIn) * 5;
 
   const gridModeLabel = gridMode.charAt(0).toUpperCase() + gridMode.slice(1);
-  const sliceSizeLabel = sliceSize === "8x10" ? "8 × 10" : "8 × 10.5";
+  const tileConfig = getTileConfig(sliceSize, sliceOrientation);
+  const sliceSizeLabel = `${formatInches(tileConfig.widthIn)} × ${formatInches(
+    tileConfig.heightIn,
+  )}`;
+  const sliceOrientationLabel =
+    sliceOrientation.charAt(0).toUpperCase() + sliceOrientation.slice(1);
 
   const gridWidthCount = printedWidthIn / gridSizeIn;
   const gridHeightCount = printedHeightIn / gridSizeIn;
@@ -147,6 +156,7 @@ function PreviewInfoRow({
           }}
         >
           <div>Slice format: {sliceSizeLabel}</div>
+          <div>Slice orientation: {sliceOrientationLabel}</div>
           <div>
             Page array: {sliceEstimate.cols} × {sliceEstimate.rows}
           </div>

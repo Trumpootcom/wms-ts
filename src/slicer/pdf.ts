@@ -1,7 +1,13 @@
 import { jsPDF } from "jspdf";
 import { buildGridPrimitives } from "./gridPrimitives.ts";
 import { buildImageViewRect } from "./imageView.ts";
-import type { GridColor, GridMode, SliceEstimate, SliceSize } from "./types.ts";
+import type {
+  GridColor,
+  GridMode,
+  SliceEstimate,
+  SliceOrientation,
+  SliceSize,
+} from "./types.ts";
 import { drawAdjustedSliceToCanvas } from "./imageAdjustments.ts";
 import type { ImageAdjustments } from "./types.ts";
 import { GRID_COLORS } from "./gridConstants.ts";
@@ -31,6 +37,7 @@ type ExportPdfArgs = {
   printedWidthIn: number;
   printedHeightIn: number;
   sliceSize: SliceSize;
+  sliceOrientation: SliceOrientation;
   sliceEstimate: SliceEstimate;
   gridMode: GridMode;
   gridColor: GridColor;
@@ -198,6 +205,7 @@ export async function exportSlicedPdf({
   printedWidthIn,
   printedHeightIn,
   sliceSize,
+  sliceOrientation,
   sliceEstimate,
   gridMode,
   gridColor,
@@ -309,15 +317,37 @@ export async function exportSlicedPdf({
       gridLineThickness,
     );
 
-    const imageDataUrl = canvas.toDataURL("image/jpeg", 0.92);
+    let pageCanvas = canvas;
+    let pageImageWidthIn = tile.widthIn;
+    let pageImageHeightIn = tile.heightIn;
+
+    if (sliceOrientation === "landscape") {
+      pageCanvas = document.createElement("canvas");
+      pageCanvas.width = tileHeightPx;
+      pageCanvas.height = tileWidthPx;
+
+      const pageCtx = pageCanvas.getContext("2d");
+      if (!pageCtx) {
+        throw new Error("Could not create rotated export canvas.");
+      }
+
+      pageCtx.translate(0, pageCanvas.height);
+      pageCtx.rotate(-Math.PI / 2);
+      pageCtx.drawImage(canvas, 0, 0);
+
+      pageImageWidthIn = tile.heightIn;
+      pageImageHeightIn = tile.widthIn;
+    }
+
+    const imageDataUrl = pageCanvas.toDataURL("image/jpeg", 0.92);
 
     pdf.addImage(
       imageDataUrl,
       "JPEG",
       margins.left,
       margins.top,
-      tile.widthIn,
-      tile.heightIn,
+      pageImageWidthIn,
+      pageImageHeightIn,
       undefined,
       "FAST",
     );

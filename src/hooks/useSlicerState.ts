@@ -18,6 +18,7 @@ import type {
   GridMode,
   GridSize,
   ImageAdjustments,
+  SliceOrientation,
   SliceSize,
 } from "../slicer/types.ts";
 
@@ -39,6 +40,8 @@ export function useSlicerState() {
 
   const [gridColor, setGridColor] = useState<GridColor>("black");
   const [sliceSize, setSliceSize] = useState<SliceSize>("8x10");
+  const [sliceOrientation, setSliceOrientation] =
+    useState<SliceOrientation>("portrait");
   const [gridSizeIn, setGridSizeIn] = useState<GridSize>(1);
 
   const [isExporting, setIsExporting] = useState<boolean>(false);
@@ -161,8 +164,14 @@ export function useSlicerState() {
   }
 
   const sliceEstimate = useMemo(
-    () => buildSliceEstimate(printedWidthIn, printedHeightIn, sliceSize),
-    [printedWidthIn, printedHeightIn, sliceSize],
+    () =>
+      buildSliceEstimate(
+        printedWidthIn,
+        printedHeightIn,
+        sliceSize,
+        sliceOrientation,
+      ),
+    [printedWidthIn, printedHeightIn, sliceSize, sliceOrientation],
   );
 
   const sourceSizeReport = useMemo(() => {
@@ -207,6 +216,7 @@ export function useSlicerState() {
         printedWidthIn,
         printedHeightIn,
         sliceSize,
+        sliceOrientation,
         sliceEstimate,
         gridMode,
         gridColor,
@@ -270,6 +280,7 @@ export function useSlicerState() {
     gridPhaseY,
     gridLineThickness,
     sliceSize,
+    sliceOrientation,
 
     imageZoom,
     imageOffsetX,
@@ -292,6 +303,7 @@ export function useSlicerState() {
     setGridPhaseY,
     setGridLineThickness,
     setSliceSize,
+    setSliceOrientation,
 
     setImageZoom,
     setImageOffsetX,

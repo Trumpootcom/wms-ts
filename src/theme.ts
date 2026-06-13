@@ -10,6 +10,12 @@ export const theme = {
     background: "hsl(42 33% 85%)",
     headerBackground: "hsl(42 33% 65%)",
     headerBorder: "hsl(42 25% 25%)",
+    horizontalInsetShadow:
+      "inset 7px 0 7px -7px hsl(42 25% 12% / 28%), inset -7px 0 7px -7px hsl(42 25% 12% / 28%)",
+    headerInsetShadow:
+      "inset 7px 0 7px -7px hsl(42 25% 12% / 28%), inset -7px 0 7px -7px hsl(42 25% 12% / 28%), inset 0 7px 7px -7px hsl(42 25% 12% / 28%)",
+    bodyInsetShadow:
+      "inset 7px 0 7px -7px hsl(42 25% 12% / 28%), inset -7px 0 7px -7px hsl(42 25% 12% / 28%), inset 0 -7px 7px -7px hsl(42 25% 12% / 28%)",
     border: "hsl(42 9% 33% / 50%)",
     text: "hsl(42 39% 11%)",
     mutedText: "hsl(42 9% 32%)",
@@ -36,8 +42,16 @@ export const theme = {
     sliderTrackDark: "hsl(42 56% 34%)",
     sliderThumb: "hsl(42 70% 42%)",
     sliderThumbBorder: "hsl(42 30% 18%)",
+    checkboxAccent: "hsl(42 70% 42%)",
+    disabledText: "hsl(42 12% 42%)",
     buttonPrimary: "hsl(42 50% 64%)",
+    buttonPrimaryTop: "hsl(42 72% 78%)",
+    buttonPrimaryBottom: "hsl(42 55% 43%)",
     buttonDisabled: "hsl(42 25% 64%)",
+    buttonDisabledTop: "hsl(42 18% 74%)",
+    buttonDisabledBottom: "hsl(42 14% 54%)",
+    buttonBorder: "hsl(42 35% 28%)",
+    buttonInsetHighlight: "inset 0 1px 0 hsl(42 85% 92% / 72%)",
     buttonText: "hsl(42 0% 0%)",
   },
 };

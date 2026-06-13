@@ -1,4 +1,4 @@
-import type { SliceEstimate, SliceSize } from "./types";
+import type { SliceEstimate, SliceOrientation, SliceSize } from "./types";
 
 export function clamp(value: number, min: number, max: number): number {
   if (Number.isNaN(value)) return min;
@@ -22,23 +22,38 @@ export function rowLabelFromIndex(index: number): string {
   return label;
 }
 
-export function getTileConfig(sliceSize: SliceSize): {
+export function getTileConfig(
+  sliceSize: SliceSize,
+  sliceOrientation: SliceOrientation = "portrait",
+): {
   widthIn: number;
   heightIn: number;
 } {
+  let config: { widthIn: number; heightIn: number };
+
   if (sliceSize === "8x10.5") {
-    return { widthIn: 8, heightIn: 10.5 };
+    config = { widthIn: 8, heightIn: 10.5 };
+  } else {
+    config = { widthIn: 8, heightIn: 10 };
   }
 
-  return { widthIn: 8, heightIn: 10 };
+  if (sliceOrientation === "landscape") {
+    return {
+      widthIn: config.heightIn,
+      heightIn: config.widthIn,
+    };
+  }
+
+  return config;
 }
 
 export function buildSliceEstimate(
   printedWidthIn: number,
   printedHeightIn: number,
   sliceSize: SliceSize,
+  sliceOrientation: SliceOrientation = "portrait",
 ): SliceEstimate {
-  const tileConfig = getTileConfig(sliceSize);
+  const tileConfig = getTileConfig(sliceSize, sliceOrientation);
 
   const cols = Math.ceil(printedWidthIn / tileConfig.widthIn);
   const rows = Math.ceil(printedHeightIn / tileConfig.heightIn);

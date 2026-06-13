@@ -124,6 +124,8 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                         { value: "black", icon: <SvgIcon name="colorBlack" size={20} />, title: "Black" },
                         { value: "gray", icon: <SvgIcon name="colorGray" size={20} />, title: "Gray" },
                         { value: "white", icon: <SvgIcon name="colorWhite" size={20} />, title: "White" },
+                        { value: "red", icon: <SvgIcon name="colorRed" size={20} />, title: "Red" },
+                        { value: "blue", icon: <SvgIcon name="colorBlue" size={20} />, title: "Blue" },
                     ]}
                 />
                 <NumberWithSlider
@@ -214,6 +216,9 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                             display: "flex",
                             alignItems: "center",
                             gap: "8px",
+                            color: slicer.imageAspectRatio
+                                ? theme.control.labelText
+                                : theme.control.disabledText,
                             opacity: slicer.imageAspectRatio ? 1 : 0.6,
                         }}
                     >
@@ -222,10 +227,22 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                             checked={slicer.maintainAspectRatio}
                             disabled={!slicer.imageAspectRatio}
                             onChange={slicer.handleAspectRatioToggle}
+                            style={{
+                                accentColor: theme.control.checkboxAccent,
+                            }}
                         />
                         Maintain aspect ratio
                     </label>
                 </div>
+                <LabeledSegmentedControl
+                    label="Orient"
+                    value={slicer.sliceOrientation}
+                    onChange={(v) => slicer.setSliceOrientation(v)}
+                    options={[
+                        { value: "portrait", title: "Portrait" },
+                        { value: "landscape", title: "Landscape" },
+                    ]}
+                />
                 <LabeledSegmentedControl
                     label="Slicer"
                     value={slicer.sliceSize}
@@ -242,15 +259,16 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                 onClick={slicer.handleExportPdf}
                 style={{
                     width: "100%",
-                    border: "none",
+                    border: `1px solid ${theme.control.buttonBorder}`,
                     borderRadius: "10px",
                     padding: "12px 16px",
-                    background:
-                        !slicer.imageUrl || slicer.isExporting
-                            ? theme.control.buttonDisabled
-                            : theme.control.buttonPrimary,
+                    background: !slicer.imageUrl || slicer.isExporting
+                        ? `linear-gradient(to bottom, ${theme.control.buttonDisabledTop} 0%, ${theme.control.buttonDisabled} 45%, ${theme.control.buttonDisabledBottom} 100%)`
+                        : `linear-gradient(to bottom, ${theme.control.buttonPrimaryTop} 0%, ${theme.control.buttonPrimary} 45%, ${theme.control.buttonPrimaryBottom} 100%)`,
                     color: theme.control.buttonText,
                     fontWeight: 700,
+                    boxShadow: theme.control.buttonInsetHighlight,
+                    textShadow: "0 1px 0 hsl(42 85% 92% / 45%)",
                     cursor:
                         !slicer.imageUrl || slicer.isExporting ? "not-allowed" : "pointer",
                 }}

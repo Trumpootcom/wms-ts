@@ -24,14 +24,15 @@ function PanelSection({
         background: theme.panel.background,
         overflow: "hidden",
         border: `1px solid ${theme.panel.border}`,
+        boxShadow: theme.panel.horizontalInsetShadow,
         marginBottom,
+        display: "grid",
+        gridTemplateRows: "auto minmax(0, 1fr)",
         ...(fillHeight
           ? {
               height: "100%",
               minHeight: 0,
               minWidth: 0,
-              display: "grid",
-              gridTemplateRows: "auto minmax(0, 1fr)",
             }
           : {}),
       }}
@@ -44,6 +45,7 @@ function PanelSection({
           padding: "6px 10px",
           background: theme.panel.headerBackground,
           borderBottom: `1px solid ${theme.panel.headerBorder}`,
+          boxShadow: theme.panel.headerInsetShadow,
           fontSize: "13px",
           color: theme.panel.text,
         }}
@@ -56,11 +58,12 @@ function PanelSection({
           position: "relative",
           zIndex: 1,
           padding: bodyPadding,
+          boxShadow: theme.panel.bodyInsetShadow,
+          minHeight: 0,
+          minWidth: 0,
+          boxSizing: "border-box",
           ...(fillHeight
             ? {
-                minHeight: 0,
-                minWidth: 0,
-                boxSizing: "border-box",
                 display: "grid",
                 overflow: "hidden",
               }

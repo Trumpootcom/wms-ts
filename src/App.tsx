@@ -6,7 +6,7 @@ import titlebarLeft from "./assets/trumpoot_titlebar_a.png";
 import titlebarFill from "./assets/trumpoot_titlebar_b.png";
 import { theme } from "./theme.ts";
 
-const titlebarHeightPx = 60;
+const titlebarHeightPx = 45;
 const titlebarLeftAspectRatio = 171 / 98;
 const titlebarLeftWidthPx = titlebarHeightPx * titlebarLeftAspectRatio;
 
@@ -87,7 +87,7 @@ function App() {
         <div
           style={{
             display: "grid",
-            gridTemplateRows: "minmax(0, 1fr) 300px",
+            gridTemplateRows: "minmax(0, 1fr) 240px",
             gap: "8px",
             minHeight: 0,
             minWidth: 0,
@@ -108,6 +108,7 @@ function App() {
             gridPhaseY={slicer.gridPhaseY}
             gridLineThickness={slicer.gridLineThickness}
             sliceSize={slicer.sliceSize}
+            sliceOrientation={slicer.sliceOrientation}
             sliceEstimate={slicer.sliceEstimate}
             sourceSizeReport={slicer.sourceSizeReport}
             sourcePixelWidth={slicer.sourcePixelWidth}
@@ -132,6 +133,7 @@ function App() {
             gridColor={slicer.gridColor}
             gridSizeIn={slicer.gridSizeIn}
             sliceSize={slicer.sliceSize}
+            sliceOrientation={slicer.sliceOrientation}
             sliceEstimate={slicer.sliceEstimate}
             sourceSizeReport={slicer.sourceSizeReport}
             sourcePixelWidth={slicer.sourcePixelWidth}

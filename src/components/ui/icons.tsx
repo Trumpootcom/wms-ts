@@ -9,6 +9,8 @@ export type SvgIconName =
     | "colorBlack"
     | "colorWhite"
     | "colorGray"
+    | "colorRed"
+    | "colorBlue"
     ;
 
 const common = {
@@ -82,6 +84,18 @@ export const icons: Record<SvgIconName, () => ReactNode> = {
     colorGray: () => (
         <rect
             fill={GRID_COLORS.gray}
+            x="0.5" y="0.5" width="19" height="19" stroke="black" strokeWidth="1"
+        />
+    ),
+    colorRed: () => (
+        <rect
+            fill={GRID_COLORS.red}
+            x="0.5" y="0.5" width="19" height="19" stroke="black" strokeWidth="1"
+        />
+    ),
+    colorBlue: () => (
+        <rect
+            fill={GRID_COLORS.blue}
             x="0.5" y="0.5" width="19" height="19" stroke="black" strokeWidth="1"
         />
     ),
