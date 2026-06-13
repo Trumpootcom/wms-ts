@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 560" role="img" aria-labelledby="title desc">
+  <title id="title">TS Globe Icon</title>
+  <desc id="desc">A tan antique globe icon with dark meridian lines and TS lettering.</desc>
+
+  <defs>
+    <radialGradient id="globeFill" cx="38%" cy="28%" r="70%">
+      <stop offset="0%" stop-color="#d8cdae" />
+      <stop offset="65%" stop-color="#c6b895" />
+      <stop offset="100%" stop-color="#aa9768" />
+    </radialGradient>
+
+    <filter id="softDrop" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.22" />
+    </filter>
+
+    <clipPath id="globeClip">
+      <circle cx="280" cy="280" r="260" />
+    </clipPath>
+  </defs>
+
+  <circle cx="280" cy="280" r="260" fill="url(#globeFill)" filter="url(#softDrop)" />
+
+  <g clip-path="url(#globeClip)">
+    <path
+      d="M45 178 C125 205, 205 215, 280 215 C355 215, 435 205, 515 178"
+      fill="none"
+      stroke="#806a2d"
+      stroke-width="17"
+    />
+    <path
+      d="M28 286 H532"
+      fill="none"
+      stroke="#806a2d"
+      stroke-width="18"
+    />
+    <path
+      d="M45 394 C125 367, 205 357, 280 357 C355 357, 435 367, 515 394"
+      fill="none"
+      stroke="#806a2d"
+      stroke-width="17"
+    />
+
+    <path
+      d="M280 47 C205 92, 166 176, 166 286 C166 396, 205 478, 280 523"
+      fill="none"
+      stroke="#806a2d"
+      stroke-width="17"
+    />
+    <path
+      d="M280 47 C355 92, 394 176, 394 286 C394 396, 355 478, 280 523"
+      fill="none"
+      stroke="#806a2d"
+      stroke-width="17"
+    />
+    <path
+      d="M280 48 V522"
+      fill="none"
+      stroke="#806a2d"
+      stroke-width="18"
+    />
+
+    <path
+      d="M64 178 C120 90, 196 44, 280 44 C364 44, 440 90, 496 178"
+      fill="none"
+      stroke="#806a2d"
+      stroke-width="17"
+    />
+    <path
+      d="M64 394 C120 482, 196 526, 280 526 C364 526, 440 482, 496 394"
+      fill="none"
+      stroke="#806a2d"
+      stroke-width="17"
+    />
+  </g>
+
+  <circle
+    cx="280"
+    cy="280"
+    r="260"
+    fill="none"
+    stroke="#806a2d"
+    stroke-width="16"
+  />
+
+  <text
+    x="280"
+    y="370"
+    text-anchor="middle"
+    font-family="Arial Black, Impact, sans-serif"
+    font-size="185"
+    font-weight="900"
+    letter-spacing="-18"
+    fill="#000000"
+  >
+    TS
+  </text>
+</svg>

@@ -65,7 +65,7 @@ function App() {
             textShadow: `0 1px 2px ${theme.app.titlebarTextShadow}`,
           }}
         >
-          Map Slicer
+          Map Slicer Tool Suite
         </h1>
       </header>
 
