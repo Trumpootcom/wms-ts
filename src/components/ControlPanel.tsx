@@ -5,6 +5,7 @@ import LabeledSegmentedControl from "./ui/LabeledSegmentedControl";
 import SvgIcon from "./ui/SvgIcon";
 import type { GridSize } from "../slicer/types.ts";
 import { DEFAULT_GRID_SIZE_IN, DEFAULT_HEIGHT_IN, DEFAULT_WIDTH_IN } from "../slicer/defaults.ts";
+import { theme } from "../theme.ts";
 
 type ControlPanelProps = {
     slicer: ReturnType<typeof useSlicerState>;
@@ -74,8 +75,8 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     defaultValue={100}
                     min={100}
                     max={200}
-                    stepInput={1}
-                    stepSlider={1}
+                    stepInput={0.1}
+                    stepSlider={0.1}
                     //                    suffix="%"
                     onChange={(value) => slicer.setImageZoom(value)}
                 />
@@ -86,8 +87,8 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     defaultValue={0}
                     min={-100}
                     max={100}
-                    stepInput={1}
-                    stepSlider={1}
+                    stepInput={0.1}
+                    stepSlider={0.1}
                     onChange={(value) => slicer.setImageOffsetX(value)}
                 />
 
@@ -97,8 +98,8 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     defaultValue={0}
                     min={-100}
                     max={100}
-                    stepInput={1}
-                    stepSlider={1}
+                    stepInput={0.1}
+                    stepSlider={0.1}
                     onChange={(value) => slicer.setImageOffsetY(value)}
                 />
 
@@ -143,8 +144,8 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     min={-90}
                     max={90}
                     defaultValue={0}
-                    stepInput={1}
-                    stepSlider={1}
+                    stepInput={0.5}
+                    stepSlider={0.5}
                 />
                 <NumberWithSlider
                     label="Size"
@@ -152,8 +153,8 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     min={0.5}
                     max={1.5}
                     defaultValue={DEFAULT_GRID_SIZE_IN}
-                    stepInput={0.1}
-                    stepSlider={0.1}
+                    stepInput={0.01}
+                    stepSlider={0.01}
                     onChange={(value) => { slicer.setGridSizeIn(value as GridSize); }}
                 />
                 <NumberWithSlider
@@ -162,8 +163,8 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     min={1}
                     max={5}
                     defaultValue={1}
-                    stepSlider={0.5}
-                    stepInput={0.5}
+                    stepSlider={0.1}
+                    stepInput={0.1}
                     onChange={slicer.setGridLineThickness}
                 />
                 <NumberWithSlider
@@ -173,7 +174,7 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     max={1}
                     defaultValue={0}
                     stepSlider={0.01}
-                    stepInput={0.05}
+                    stepInput={0.01}
                     onChange={slicer.setGridPhaseX}
                 />
 
@@ -184,7 +185,7 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     max={1}
                     defaultValue={0}
                     stepSlider={0.01}
-                    stepInput={0.05}
+                    stepInput={0.01}
                     onChange={slicer.setGridPhaseY}
                 />
             </PanelSection>
@@ -245,8 +246,10 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     borderRadius: "10px",
                     padding: "12px 16px",
                     background:
-                        !slicer.imageUrl || slicer.isExporting ? "#9ca3af" : "#2563eb",
-                    color: "white",
+                        !slicer.imageUrl || slicer.isExporting
+                            ? theme.control.buttonDisabled
+                            : theme.control.buttonPrimary,
+                    color: theme.control.buttonText,
                     fontWeight: 700,
                     cursor:
                         !slicer.imageUrl || slicer.isExporting ? "not-allowed" : "pointer",
@@ -256,7 +259,13 @@ function ControlPanel({ slicer }: ControlPanelProps) {
             </button>
 
             {slicer.exportMessage && (
-                <div style={{ marginTop: "12px", color: "#4b5563", fontSize: "14px" }}>
+                <div
+                    style={{
+                        marginTop: "12px",
+                        color: theme.panel.mutedText,
+                        fontSize: "14px",
+                    }}
+                >
                     {slicer.exportMessage}
                 </div>
             )}

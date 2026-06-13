@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { theme } from "../../theme";
 
 type SegmentedControlOption<T extends string | number> = {
     value: T;
@@ -45,15 +46,17 @@ function SegmentedControl<T extends string | number>({
                         style={{
                             flex: wrap ? "0 0 auto" : 1,
                             minWidth: wrap ? "72px" : 0,
-                            border: selected ? "2px solid #1d4ed8" : "1px solid #9ca3af",
+                            border: selected
+                                ? `2px solid ${theme.control.selectedBorder}`
+                                : `1px solid ${theme.control.border}`,
                             borderRadius: "10px",
                             padding: "10px 12px",
                             background: selected
-                                ? "#dbeafe"
+                                ? theme.control.selectedBackground
                                 : lightOption
-                                  ? "#ffffff"
-                                  : "#f3f4f6",
-                            color: "#111827",
+                                  ? theme.control.lightBackground
+                                  : theme.control.background,
+                            color: theme.app.text,
                             fontWeight: 700,
                             cursor: "pointer",
                             display: "flex",

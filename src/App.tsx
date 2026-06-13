@@ -2,7 +2,13 @@ import ControlPanel from "./components/ControlPanel.tsx";
 import PreviewPanel from "./components/PreviewPanel.tsx";
 import PreviewInfoRow from "./components/PreviewInfoRow.tsx";
 import { useSlicerState } from "./hooks/useSlicerState.ts";
-import trumpoot from "./assets/trumpoot.svg";
+import titlebarLeft from "./assets/trumpoot_titlebar_a.png";
+import titlebarFill from "./assets/trumpoot_titlebar_b.png";
+import { theme } from "./theme.ts";
+
+const titlebarHeightPx = 60;
+const titlebarLeftAspectRatio = 171 / 98;
+const titlebarLeftWidthPx = titlebarHeightPx * titlebarLeftAspectRatio;
 
 function App() {
   const slicer = useSlicerState();
@@ -13,33 +19,54 @@ function App() {
         height: "100vh",
         display: "grid",
         gridTemplateRows: "auto minmax(0, 1fr)",
-        background: "#f3f4f6",
-        color: "#111827",
+        background: theme.app.background,
+        color: theme.app.text,
         fontFamily: "Arial, sans-serif",
         overflow: "hidden",
       }}
     >
       <header
         style={{
-          background: "#204170",
-          color: "white",
-          padding: "10px 14px",
+          position: "relative",
+          minHeight: `${titlebarHeightPx}px`,
+          backgroundColor: theme.app.titlebarFallback,
+          backgroundImage: `url(${titlebarFill})`,
+          backgroundSize: "100% 100%",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          color: theme.app.titlebarText,
+          padding: "0 14px",
+          paddingLeft: `${titlebarLeftWidthPx + 14}px`,
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
+          overflow: "hidden",
         }}
       >
-        <h1 style={{ margin: 0 }}>VTT Slicer</h1>
-
         <img
-          src={trumpoot}
-          alt="Trumpoot logo"
+          src={titlebarLeft}
+          alt=""
+          aria-hidden="true"
           style={{
-            height: "40px",
+            position: "absolute",
+            left: 0,
+            top: 0,
+            height: "100%",
             width: "auto",
             display: "block",
+            pointerEvents: "none",
           }}
         />
+
+        <h1
+          style={{
+            position: "relative",
+            zIndex: 1,
+            margin: 0,
+            textShadow: `0 1px 2px ${theme.app.titlebarTextShadow}`,
+          }}
+        >
+          VTT Slicer
+        </h1>
       </header>
 
       <main
@@ -90,6 +117,12 @@ function App() {
             imageZoom={slicer.imageZoom}
             imageOffsetX={slicer.imageOffsetX}
             imageOffsetY={slicer.imageOffsetY}
+            setImageZoom={slicer.setImageZoom}
+            setImageOffsetX={slicer.setImageOffsetX}
+            setImageOffsetY={slicer.setImageOffsetY}
+            setGridSizeIn={slicer.setGridSizeIn}
+            setGridPhaseX={slicer.setGridPhaseX}
+            setGridPhaseY={slicer.setGridPhaseY}
           />
 
           <PreviewInfoRow

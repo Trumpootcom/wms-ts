@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { theme } from "../../theme";
 import { controlLabelStyle } from "./uiStyles";
 
 type LabeledSegmentedOption<T extends string | number> = {
@@ -53,10 +54,14 @@ function LabeledSegmentedControl<T extends string | number>({
                             style={{
                                 padding: "4px",
                                 border: "2px solid",
-                                borderColor: selected ? "#1d4ed8" : "#9ca3af",
+                                borderColor: selected
+                                    ? theme.control.selectedBorder
+                                    : theme.control.border,
                                 borderRadius: "8px",
-                                background: selected ? "#dbeafe" : "#f3f4f6",
-                                color: "#111827",
+                                background: selected
+                                    ? theme.control.selectedBackground
+                                    : theme.control.background,
+                                color: theme.app.text,
                                 cursor: "pointer",
                                 display: "flex",
                                 alignItems: "center",

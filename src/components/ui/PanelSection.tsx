@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { theme } from "../../theme.ts";
 
 type PanelSectionProps = {
   title: string;
@@ -20,14 +21,15 @@ function PanelSection({
       style={{
         position: "relative",
         borderRadius: "8px",
-        background: "#e8eaec",
+        background: theme.panel.background,
         overflow: "hidden",
-        border: "1px solid #4d525c80",
+        border: `1px solid ${theme.panel.border}`,
         marginBottom,
         ...(fillHeight
           ? {
               height: "100%",
               minHeight: 0,
+              minWidth: 0,
               display: "grid",
               gridTemplateRows: "auto minmax(0, 1fr)",
             }
@@ -38,43 +40,34 @@ function PanelSection({
         style={{
           position: "relative",
           zIndex: 1,
+          fontWeight: 700,
+          padding: "6px 10px",
+          background: theme.panel.headerBackground,
+          borderBottom: `1px solid ${theme.panel.headerBorder}`,
+          fontSize: "13px",
+          color: theme.panel.text,
+        }}
+      >
+        {title}
+      </div>
+
+      <div
+        style={{
+          position: "relative",
+          zIndex: 1,
+          padding: bodyPadding,
           ...(fillHeight
             ? {
-                height: "100%",
                 minHeight: 0,
+                minWidth: 0,
+                boxSizing: "border-box",
                 display: "grid",
-                gridTemplateRows: "auto minmax(0, 1fr)",
+                overflow: "hidden",
               }
             : {}),
         }}
       >
-        <div
-          style={{
-            fontWeight: 700,
-            padding: "6px 10px",
-            background: "#9aa3af",
-            borderBottom: "1px solid #6b7280",
-            fontSize: "13px",
-            color: "#111827",
-          }}
-        >
-          {title}
-        </div>
-
-        <div
-          style={{
-            padding: bodyPadding,
-            ...(fillHeight
-              ? {
-                  height: "100%",
-                  minHeight: 0,
-                  boxSizing: "border-box",
-                }
-              : {}),
-          }}
-        >
-          {children}
-        </div>
+        {children}
       </div>
 
       <div

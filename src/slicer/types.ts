@@ -2,7 +2,7 @@ export type GridColor = "black" | "white" | "gray";
 export type GridMode = "none" | "line" | "dash" | "corner" ;
 
 export type SliceSize = "8x10" | "8x10.5";
-export type GridSize = 0.75 | 1 | 1.25 | 1.5;
+export type GridSize = number;
 
 export type ImageAdjustments = {
   brightness: number; // -100 to 100

@@ -1,3 +1,6 @@
+import type { CSSProperties } from "react";
+import { useState } from "react";
+import { theme } from "../../theme.ts";
 import { controlLabelStyle } from "./uiStyles.ts";
 
 type NumberWithSliderProps = {
@@ -18,13 +21,38 @@ function NumberWithSlider({
     defaultValue,
     min,
     max,
-    stepInput = 0.1,
-    stepSlider = 0.5,
+    stepInput = 0.01,
+    stepSlider = 0.01,
     onChange,
     suffix,
 }: NumberWithSliderProps) {
+    const [draftValue, setDraftValue] = useState(String(value));
+    const [isEditing, setIsEditing] = useState(false);
 
     const isModified = value !== defaultValue;
+    const displayedValue = isEditing ? draftValue : String(value);
+    const sliderProgress =
+        max === min ? 0 : ((value - min) / (max - min)) * 100;
+    const sliderStyle = {
+        "--slider-progress": `${Math.min(Math.max(sliderProgress, 0), 100)}%`,
+        "--slider-fill": theme.control.sliderTrackDark,
+        "--slider-track": theme.control.sliderTrackBright,
+        "--slider-thumb": theme.control.sliderThumb,
+        "--slider-thumb-border": theme.control.sliderThumbBorder,
+    } as CSSProperties;
+
+    function commitDraftValue() {
+        const nextValue = Number(draftValue);
+
+        if (!Number.isFinite(nextValue)) {
+            setDraftValue(String(value));
+            return;
+        }
+
+        const clampedValue = Math.min(Math.max(nextValue, min), max);
+        onChange(clampedValue);
+        setDraftValue(String(clampedValue));
+    }
 
     return (
         <div
@@ -39,26 +67,58 @@ function NumberWithSlider({
             <button
                 type="button"
                 onClick={() => onChange(defaultValue)}
-                title={`Reset to default (${defaultValue})`}
+                title={
+                    isModified
+                        ? `Reset ${label} to default (${defaultValue})`
+                        : `${label} is at default (${defaultValue})`
+                }
+                aria-label={
+                    isModified
+                        ? `Reset ${label} to default value ${defaultValue}`
+                        : `${label}, default value ${defaultValue}`
+                }
                 style={{
                     ...controlLabelStyle,
 
                     flex: "0 0 100px",
 
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "6px",
                     padding: "2px 6px",
                     borderRadius: "4px",
-                    border: "1px solid #9ca3af",
-                    background: isModified ? "#fde68a" : "#e5e7eb",
+                    border: `1px solid ${theme.control.border}`,
+                    background: isModified
+                        ? theme.control.modifiedBackground
+                        : theme.control.resetBackground,
 
-                    color: isModified ? "#92400e" : "#374151",
+                    color: isModified
+                        ? theme.control.modifiedText
+                        : theme.control.labelText,
 
                     fontWeight: 600,
 
-                    cursor: "pointer",
+                    cursor: isModified ? "pointer" : "default",
                     userSelect: "none",
+                    boxShadow: isModified
+                        ? `inset 0 -2px 0 ${theme.control.sliderTrackDark}`
+                        : "none",
                 }}
             >
-                {label}
+                <span>{label}</span>
+                {isModified && (
+                    <span
+                        aria-hidden="true"
+                        style={{
+                            fontSize: "13px",
+                            fontWeight: 800,
+                            lineHeight: 1,
+                        }}
+                    >
+                        ↺
+                    </span>
+                )}
             </button>
 
             <div
@@ -71,6 +131,7 @@ function NumberWithSlider({
                 }}
             >
                 <input
+                    className="number-slider"
                     type="range"
                     min={min}
                     max={max}
@@ -78,6 +139,7 @@ function NumberWithSlider({
                     value={value}
                     onChange={(e) => onChange(Number(e.target.value))}
                     style={{
+                        ...sliderStyle,
                         flex: "1 1 auto",
                         minWidth: 60,
                         maxWidth: 140,
@@ -89,19 +151,41 @@ function NumberWithSlider({
                     min={min}
                     max={max}
                     step={stepInput}
-                    value={value}
-                    onChange={(e) => onChange(Number(e.target.value))}
+                    value={displayedValue}
+                    onFocus={() => {
+                        setIsEditing(true);
+                        setDraftValue(String(value));
+                    }}
+                    onChange={(e) => setDraftValue(e.target.value)}
+                    onBlur={() => {
+                        setIsEditing(false);
+                        commitDraftValue();
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            e.currentTarget.blur();
+                        }
+
+                        if (e.key === "Escape") {
+                            setDraftValue(String(value));
+                            e.currentTarget.blur();
+                        }
+                    }}
                     style={{
                         width: "44px",
                         padding: "3px 4px",
                         textAlign: "right",
-                        border: "1px solid #9ca3af",
+                        border: `1px solid ${theme.control.border}`,
                         borderRadius: "4px",
-                        background: "#f9fafb",
+                        background: theme.control.inputBackground,
                     }}
 
                 />
-                {suffix && <span style={{ fontSize: "12px", color: "#4b5563" }}>{suffix}</span>}
+                {suffix && (
+                    <span style={{ fontSize: "12px", color: theme.panel.mutedText }}>
+                        {suffix}
+                    </span>
+                )}
             </div>
         </div>
     );

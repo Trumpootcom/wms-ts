@@ -15,3 +15,54 @@ input[type="number"]::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+.number-slider {
+  appearance: none;
+  height: 18px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.number-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  border: 1px solid var(--slider-thumb-border);
+  background: linear-gradient(
+    to right,
+    var(--slider-fill) 0%,
+    var(--slider-fill) var(--slider-progress),
+    var(--slider-track) var(--slider-progress),
+    var(--slider-track) 100%
+  );
+}
+
+.number-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -5px;
+  border-radius: 50%;
+  border: 2px solid var(--slider-thumb-border);
+  background: var(--slider-thumb);
+}
+
+.number-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  border: 1px solid var(--slider-thumb-border);
+  background: var(--slider-track);
+}
+
+.number-slider::-moz-range-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--slider-fill);
+}
+
+.number-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--slider-thumb-border);
+  background: var(--slider-thumb);
+}

@@ -1,4 +1,5 @@
 import PanelSection from "./ui/PanelSection.tsx";
+import { theme } from "../theme.ts";
 import type {
   GridColor,
   GridMode,
@@ -73,7 +74,7 @@ function PreviewInfoRow({
       <PanelSection title="Image Info" marginBottom="0px">
         <div
           style={{
-            color: "#4b5563",
+            color: theme.panel.mutedText,
             lineHeight: 1.5,
             fontSize: "14px",
           }}
@@ -104,7 +105,7 @@ function PreviewInfoRow({
       <PanelSection title="Map Info" marginBottom="0px">
         <div
           style={{
-            color: "#4b5563",
+            color: theme.panel.mutedText,
             lineHeight: 1.5,
             fontSize: "14px",
           }}
@@ -140,7 +141,7 @@ function PreviewInfoRow({
       <PanelSection title="PDF Info" marginBottom="0px">
         <div
           style={{
-            color: "#4b5563",
+            color: theme.panel.mutedText,
             lineHeight: 1.5,
             fontSize: "14px",
           }}
