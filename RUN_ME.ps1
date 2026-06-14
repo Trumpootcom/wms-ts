@@ -1,7 +1,7 @@
 # Always run from this script's folder
 cd "$PSScriptRoot"
 
-Write-Host "Starting VTT Slicer..." -ForegroundColor Cyan
+Write-Host "Starting WMS Tool Suite..." -ForegroundColor Cyan
 
 # Install dependencies (safe to run every time)
 Write-Host "Running npm install..."

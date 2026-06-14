@@ -1,6 +1,6 @@
-# VTT Slicer
+# WMS Tool Suite
 
-VTT Slicer is a browser app for preparing virtual tabletop maps for print. Upload an image, tune the output size and grid, preview the page slices, then export a PDF.
+WMS Tool Suite is a browser app for preparing tabletop maps for print. Upload an image, tune the output size and grid, preview the page slices, then export a PDF.
 
 ## Run Locally
 

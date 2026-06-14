@@ -360,5 +360,5 @@ export async function exportSlicedPdf({
 
   const safeWidth = String(printedWidthIn).replace(".", "_");
   const safeHeight = String(printedHeightIn).replace(".", "_");
-  pdf.save(`vtt_slices_${safeWidth}x${safeHeight}.pdf`);
+  pdf.save(`wms_slices_${safeWidth}x${safeHeight}.pdf`);
 }
