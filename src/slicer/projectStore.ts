@@ -4,6 +4,7 @@ export type LocalProject = {
   createdAt: string;
   updatedAt: string;
   blob: Blob;
+  thumbnailBlob?: Blob;
 };
 
 export type LocalProjectSummary = Omit<LocalProject, "blob">;
@@ -53,11 +54,12 @@ export async function listLocalProjects(): Promise<LocalProjectSummary[]> {
 
   return projects
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-    .map(({ id, name, createdAt, updatedAt }) => ({
+    .map(({ id, name, createdAt, updatedAt, thumbnailBlob }) => ({
       id,
       name,
       createdAt,
       updatedAt,
+      thumbnailBlob,
     }));
 }
 
@@ -71,6 +73,7 @@ export async function saveLocalProject(
   blob: Blob,
   name: string,
   existingId?: string | null,
+  thumbnailBlob?: Blob,
 ): Promise<LocalProject> {
   const now = new Date().toISOString();
   const existing = existingId ? await getLocalProject(existingId) : undefined;
@@ -80,6 +83,7 @@ export async function saveLocalProject(
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
     blob,
+    thumbnailBlob: thumbnailBlob ?? existing?.thumbnailBlob,
   };
 
   await runRequest<IDBValidKey>("readwrite", (store) => store.put(project));

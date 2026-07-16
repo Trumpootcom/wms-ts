@@ -21,6 +21,7 @@ import {
   saveLocalProject,
   type LocalProjectSummary,
 } from "../slicer/projectStore.ts";
+import { createProjectThumbnail } from "../slicer/projectThumbnail.ts";
 import {
   DEFAULT_HEIGHT_IN,
   DEFAULT_WIDTH_IN,
@@ -66,7 +67,6 @@ export function useSlicerState() {
   const [localProjects, setLocalProjects] = useState<LocalProjectSummary[]>([]);
   const [activeLocalProjectId, setActiveLocalProjectId] = useState<string | null>(null);
   const [projectName, setProjectName] = useState<string>("WMS Saved Map");
-  const [isRecentProjectsOpen, setIsRecentProjectsOpen] = useState(false);
 
   async function refreshLocalProjects() {
     setLocalProjects(await listLocalProjects());
@@ -360,7 +360,15 @@ export function useSlicerState() {
     setExportMessage("Saving project locally...");
     try {
       const projectBlob = await buildCurrentProjectBlob();
-      const saved = await saveLocalProject(projectBlob, projectName, activeLocalProjectId);
+      const thumbnailBlob = imageBlob
+        ? await createProjectThumbnail(imageBlob)
+        : undefined;
+      const saved = await saveLocalProject(
+        projectBlob,
+        projectName,
+        activeLocalProjectId,
+        thumbnailBlob,
+      );
       setActiveLocalProjectId(saved.id);
       await refreshLocalProjects();
       setExportMessage("Project saved locally.");
@@ -394,6 +402,7 @@ export function useSlicerState() {
       setImageZoom(settings.imageZoom);
       setImageOffsetX(settings.imageOffsetX);
       setImageOffsetY(settings.imageOffsetY);
+      return project;
   }
 
   async function handleOpenProject(e: React.ChangeEvent<HTMLInputElement>) {
@@ -404,8 +413,14 @@ export function useSlicerState() {
     setExportMessage("Opening project...");
 
     try {
-      await applyOpenedProject(file);
-      const imported = await saveLocalProject(file, file.name.replace(/\.wmsts$/i, ""));
+      const opened = await applyOpenedProject(file);
+      const thumbnailBlob = await createProjectThumbnail(opened.imageBlob);
+      const imported = await saveLocalProject(
+        file,
+        file.name.replace(/\.wmsts$/i, ""),
+        null,
+        thumbnailBlob,
+      );
       setActiveLocalProjectId(imported.id);
       setProjectName(imported.name);
       await refreshLocalProjects();
@@ -422,7 +437,6 @@ export function useSlicerState() {
       const stored = await getLocalProject(id);
       if (!stored) throw new Error("The local project no longer exists.");
       await applyOpenedProject(stored.blob, stored.id, stored.name);
-      setIsRecentProjectsOpen(false);
       setExportMessage("Local project opened.");
     } catch (error) {
       console.error(error);
@@ -502,7 +516,7 @@ export function useSlicerState() {
     exportMessage,
     projectName,
     localProjects,
-    isRecentProjectsOpen,
+    activeLocalProjectId,
 
     imageAdjustments,
 
@@ -529,7 +543,6 @@ export function useSlicerState() {
     handleRenameLocalProject,
     handleDeleteLocalProject,
     handleExportLocalProject,
-    setIsRecentProjectsOpen,
     updateWidth,
     updateHeight,
     handleAspectRatioToggle,
