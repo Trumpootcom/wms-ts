@@ -16,6 +16,23 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
+body {
+  min-height: 100dvh;
+}
+
+@media (max-width: 720px) {
+  .mobile-slider::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+    margin-top: -8px;
+  }
+
+  .mobile-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+  }
+}
+
 .number-slider {
   appearance: none;
   height: 18px;

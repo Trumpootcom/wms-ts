@@ -7,6 +7,8 @@ import titlebarLeft from "./assets/trumpoot_titlebar_a.png";
 import titlebarFill from "./assets/trumpoot_titlebar_b.png";
 import { buildInfo } from "./buildInfo.ts";
 import { theme } from "./theme.ts";
+import { useIsMobile } from "./hooks/useIsMobile.ts";
+import MobileLayout from "./components/mobile/MobileLayout.tsx";
 
 const titlebarHeightPx = 40;
 const titlebarLeftAspectRatio = 171 / 98;
@@ -14,6 +16,7 @@ const titlebarLeftWidthPx = titlebarHeightPx * titlebarLeftAspectRatio;
 
 function App() {
   const slicer = useSlicerState();
+  const isMobile = useIsMobile();
   const [isSplashOpen, setIsSplashOpen] = useState(true);
 
   useEffect(() => {
@@ -34,7 +37,7 @@ function App() {
   return (
     <div
       style={{
-        height: "100vh",
+        height: "100dvh",
         display: "grid",
         gridTemplateRows: "auto minmax(0, 1fr)",
         background: theme.app.background,
@@ -255,6 +258,9 @@ function App() {
         </div>
       ) : null}
 
+      {isMobile ? (
+        <MobileLayout slicer={slicer} />
+      ) : (
       <main
         style={{
           display: "grid",
@@ -332,6 +338,7 @@ function App() {
           />
         </div>
       </main>
+      )}
     </div>
   );
 }
