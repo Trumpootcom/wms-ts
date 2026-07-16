@@ -1,4 +1,5 @@
 import type { SliceEstimate, SliceOrientation, SliceSize } from "./types";
+import { getSliceContentBox } from "./slicePresets.ts";
 
 export function clamp(value: number, min: number, max: number): number {
   if (Number.isNaN(value)) return min;
@@ -29,22 +30,7 @@ export function getTileConfig(
   widthIn: number;
   heightIn: number;
 } {
-  let config: { widthIn: number; heightIn: number };
-
-  if (sliceSize === "8x10.5") {
-    config = { widthIn: 8, heightIn: 10.5 };
-  } else {
-    config = { widthIn: 8, heightIn: 10 };
-  }
-
-  if (sliceOrientation === "landscape") {
-    return {
-      widthIn: config.heightIn,
-      heightIn: config.widthIn,
-    };
-  }
-
-  return config;
+  return getSliceContentBox(sliceSize, sliceOrientation);
 }
 
 export function buildSliceEstimate(

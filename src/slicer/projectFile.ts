@@ -7,6 +7,7 @@ import type {
   SliceOrientation,
   SliceSize,
 } from "./types.ts";
+import { getSliceContentBox, getSlicePreset } from "./slicePresets.ts";
 
 export const WMS_PROJECT_EXTENSION = "wmsts";
 export const WMS_PROJECT_MIME_TYPE = "application/vnd.trumpoot.wmsts+zip";
@@ -27,7 +28,7 @@ export type SavedMapSettings = {
   sliceOrientation: SliceOrientation;
   pageSetup: {
     paper: {
-      presetId: "letter";
+      presetId: "letter" | "ledger";
       widthIn: number;
       heightIn: number;
     };
@@ -142,42 +143,23 @@ export function buildSavedPageSetup(
   sliceSize: SliceSize,
   sliceOrientation: SliceOrientation,
 ): SavedMapSettings["pageSetup"] {
-  const baseContent =
-    sliceSize === "8x10.5"
-      ? {
-          presetId: "letter-8x10.5",
-          widthIn: 8,
-          heightIn: 10.5,
-          marginTopIn: 0.25,
-          marginBottomIn: 0.25,
-        }
-      : {
-          presetId: "letter-8x10",
-          widthIn: 8,
-          heightIn: 10,
-          marginTopIn: 0.5,
-          marginBottomIn: 0.5,
-        };
-
-  const contentBox =
-    sliceOrientation === "landscape"
-      ? {
-          ...baseContent,
-          widthIn: baseContent.heightIn,
-          heightIn: baseContent.widthIn,
-        }
-      : baseContent;
+  const preset = getSlicePreset(sliceSize);
+  const contentSize = getSliceContentBox(sliceSize, sliceOrientation);
 
   return {
     paper: {
-      presetId: "letter",
-      widthIn: 8.5,
-      heightIn: 11,
+      presetId: preset.paper.presetId,
+      widthIn: preset.paper.widthIn,
+      heightIn: preset.paper.heightIn,
     },
     contentBox: {
-      ...contentBox,
-      marginLeftIn: 0.25,
-      marginRightIn: 0.25,
+      presetId: preset.contentBox.presetId,
+      widthIn: contentSize.widthIn,
+      heightIn: contentSize.heightIn,
+      marginLeftIn: preset.contentBox.marginLeftIn,
+      marginRightIn: preset.contentBox.marginRightIn,
+      marginTopIn: preset.contentBox.marginTopIn,
+      marginBottomIn: preset.contentBox.marginBottomIn,
     },
   };
 }

@@ -299,6 +299,7 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     options={[
                         { value: "8x10", title: "8 x 10" },
                         { value: "8x10.5", title: "8 x 10.5" },
+                        { value: "ledger", title: "Ledger" },
                     ]}
                 />
             </PanelSection>

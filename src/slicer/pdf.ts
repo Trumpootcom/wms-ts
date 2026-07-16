@@ -11,6 +11,7 @@ import type {
 import { drawAdjustedSliceToCanvas } from "./imageAdjustments.ts";
 import type { ImageAdjustments } from "./types.ts";
 import { GRID_COLORS } from "./gridConstants.ts";
+import { getSlicePreset } from "./slicePresets.ts";
 
 export async function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -25,11 +26,12 @@ export function getPageMargins(sliceSize: SliceSize): {
   left: number;
   top: number;
 } {
-  if (sliceSize === "8x10.5") {
-    return { left: 0.25, top: 0.25 };
-  }
+  const preset = getSlicePreset(sliceSize);
 
-  return { left: 0.25, top: 0.5 };
+  return {
+    left: preset.contentBox.marginLeftIn,
+    top: preset.contentBox.marginTopIn,
+  };
 }
 
 type ExportPdfArgs = {
@@ -223,11 +225,16 @@ export async function exportSlicedPdf({
   onProgress,
 }: ExportPdfArgs): Promise<void> {
   const sourceImage = await loadImage(imageUrl);
+  const slicePreset = getSlicePreset(sliceSize);
+  const pdfPageFormat: [number, number] = [
+    slicePreset.paper.widthIn,
+    slicePreset.paper.heightIn,
+  ];
 
   const pdf = new jsPDF({
     orientation: "portrait",
     unit: "in",
-    format: "letter",
+    format: pdfPageFormat,
     compress: true,
   });
 
@@ -264,7 +271,7 @@ export async function exportSlicedPdf({
     );
 
     if (i > 0) {
-      pdf.addPage("letter", "portrait");
+      pdf.addPage(pdfPageFormat, "portrait");
     }
 
     const tileWidthPx = Math.max(1, Math.round(tile.widthIn * exportDpi));
@@ -355,7 +362,12 @@ export async function exportSlicedPdf({
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(10);
     pdf.setTextColor(60, 60, 60);
-    pdf.text(tile.label, 4.25, 10.88, { align: "center" });
+    pdf.text(
+      tile.label,
+      slicePreset.paper.widthIn / 2,
+      slicePreset.paper.heightIn - 0.12,
+      { align: "center" },
+    );
   }
 
   const safeWidth = String(printedWidthIn).replace(".", "_");
