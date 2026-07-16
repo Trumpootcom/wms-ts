@@ -20,7 +20,58 @@ body {
   min-height: 100dvh;
 }
 
+.mobile-touch-mode {
+  display: none;
+}
+
 @media (max-width: 720px) {
+  .preview-gesture-guidance {
+    display: none !important;
+  }
+
+  .mobile-touch-mode {
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    z-index: 6;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin: 0;
+    padding: 3px;
+    border: 1px solid hsl(42 25% 35% / 70%);
+    border-radius: 7px;
+    background: hsl(42 33% 85% / 92%);
+    white-space: nowrap;
+  }
+
+  .mobile-touch-mode legend {
+    float: left;
+    padding: 0 5px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .mobile-touch-mode label {
+    padding: 4px 7px;
+    border: 1px solid hsl(42 12% 55%);
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .mobile-touch-mode label[data-selected="true"] {
+    border-color: hsl(42 91% 40%);
+    background: hsl(42 66% 75%);
+  }
+
+  .mobile-touch-mode input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
   .mobile-slider::-webkit-slider-thumb {
     width: 22px;
     height: 22px;

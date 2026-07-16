@@ -52,6 +52,8 @@ type PreviewPanelProps = {
   setGridSizeIn: (value: GridSize) => void;
   setGridPhaseX: (value: number) => void;
   setGridPhaseY: (value: number) => void;
+  hideGestureGuidance?: boolean;
+  touchInteractionMode?: "image" | "grid";
 };
 
 type DragStart = {
@@ -63,6 +65,13 @@ type DragStart = {
   imageOffsetY: number;
   gridPhaseX: number;
   gridPhaseY: number;
+};
+
+type PinchStart = {
+  mode: "image" | "grid";
+  distance: number;
+  imageZoom: number;
+  gridSizeIn: number;
 };
 
 function clamp(value: number, min: number, max: number): number {
@@ -99,12 +108,19 @@ function PreviewPanel({
   setGridSizeIn,
   setGridPhaseX,
   setGridPhaseY,
+  hideGestureGuidance = false,
+  touchInteractionMode = "image",
 }: PreviewPanelProps) {
   const previewPaddingPx = 5;
   const previewBorderPx = 1;
 
   const previewMeasureRef = useRef<HTMLDivElement | null>(null);
   const dragStartRef = useRef<DragStart | null>(null);
+  const activePointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const pinchStartRef = useRef<PinchStart | null>(null);
+  const [touchMode, setTouchMode] = useState<"image" | "grid">(
+    touchInteractionMode,
+  );
   const [previewStage, setPreviewStage] = useState({ width: 1, height: 1 });
 
   useLayoutEffect(() => {
@@ -239,8 +255,25 @@ function PreviewPanel({
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
 
+    activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const interactionMode = e.altKey
+      ? "grid"
+      : touchMode;
+
+    if (activePointersRef.current.size === 2) {
+      const [first, second] = [...activePointersRef.current.values()];
+      pinchStartRef.current = {
+        mode: interactionMode,
+        distance: Math.max(Math.hypot(second.x - first.x, second.y - first.y), 1),
+        imageZoom,
+        gridSizeIn,
+      };
+      dragStartRef.current = null;
+      return;
+    }
+
     dragStartRef.current = {
-      mode: e.altKey ? "grid" : "image",
+      mode: interactionMode,
       pointerId: e.pointerId,
       x: e.clientX,
       y: e.clientY,
@@ -252,6 +285,26 @@ function PreviewPanel({
   }
 
   function handleImagePointerMove(e: PointerEvent<HTMLDivElement>) {
+    if (activePointersRef.current.has(e.pointerId)) {
+      activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+
+    const pinchStart = pinchStartRef.current;
+    if (pinchStart && activePointersRef.current.size >= 2) {
+      const [first, second] = [...activePointersRef.current.values()];
+      const distance = Math.max(Math.hypot(second.x - first.x, second.y - first.y), 1);
+      const scale = distance / pinchStart.distance;
+      if (pinchStart.mode === "grid") {
+        setGridSizeIn(
+          (Math.round(clamp(pinchStart.gridSizeIn * scale, 0.5, 1.5) * 100) /
+            100) as GridSize,
+        );
+      } else if (imageUrl) {
+        setImageZoom(clamp(Math.round(pinchStart.imageZoom * scale * 10) / 10, 100, 200));
+      }
+      return;
+    }
+
     const dragStart = dragStartRef.current;
 
     if (!dragStart || dragStart.pointerId !== e.pointerId) return;
@@ -303,6 +356,8 @@ function PreviewPanel({
   }
 
   function stopImageDrag(e: PointerEvent<HTMLDivElement>) {
+    activePointersRef.current.delete(e.pointerId);
+    if (activePointersRef.current.size < 2) pinchStartRef.current = null;
     if (dragStartRef.current?.pointerId === e.pointerId) {
       dragStartRef.current = null;
     }
@@ -337,7 +392,29 @@ function PreviewPanel({
           }}
           onWheel={handlePreviewWheel}
         >
-          <div
+          <fieldset
+            className="mobile-touch-mode"
+            aria-label="Preview zoom and pan target"
+          >
+            <legend>Zoom/Pan:</legend>
+            {(["image", "grid"] as const).map((mode) => (
+              <label
+                key={mode}
+                data-selected={touchMode === mode ? "true" : "false"}
+              >
+                <input
+                  type="radio"
+                  name="preview-touch-mode"
+                  value={mode}
+                  checked={touchMode === mode}
+                  onChange={() => setTouchMode(mode)}
+                />
+                {mode === "image" ? "Image" : "Grid"}
+              </label>
+            ))}
+          </fieldset>
+
+          {!hideGestureGuidance && <div className="preview-gesture-guidance"
             style={{
               position: "absolute",
               top: "8px",
@@ -371,9 +448,9 @@ function PreviewPanel({
               <span>CLICK-DRAG</span>
               <span>PAN IMAGE</span>
             </div>
-          </div>
+          </div>}
 
-          <div
+          {!hideGestureGuidance && <div className="preview-gesture-guidance"
             style={{
               position: "absolute",
               top: "8px",
@@ -405,7 +482,7 @@ function PreviewPanel({
               <span>ALT-CLICK-DRAG</span>
               <span>GRID PAN</span>
             </div>
-          </div>
+          </div>}
 
           <div
             id="mapStage"
