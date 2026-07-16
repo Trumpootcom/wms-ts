@@ -7,6 +7,12 @@ import {
 } from "../slicer/math.ts";
 import { exportSlicedPdf } from "../slicer/pdf.ts";
 import {
+  buildSavedPageSetup,
+  createProjectFile,
+  getProjectDownloadFileName,
+  openProjectFile,
+} from "../slicer/projectFile.ts";
+import {
   DEFAULT_HEIGHT_IN,
   DEFAULT_WIDTH_IN,
   EXPORT_DPI,
@@ -24,6 +30,8 @@ import type {
 
 export function useSlicerState() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageBlob, setImageBlob] = useState<Blob | null>(null);
+  const [imageFileName, setImageFileName] = useState<string>("map-image");
   const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
   const [sourcePixelWidth, setSourcePixelWidth] = useState<number | null>(null);
   const [sourcePixelHeight, setSourcePixelHeight] = useState<number | null>(null);
@@ -78,6 +86,8 @@ export function useSlicerState() {
       const aspect = img.width / img.height;
       setImageAspectRatio(aspect);
       setImageUrl(url);
+      setImageBlob(file);
+      setImageFileName(file.name || "map-image");
 
       if (maintainAspectRatio) {
         const adjustedHeight = clamp(
@@ -96,6 +106,28 @@ export function useSlicerState() {
       }
     };
     img.src = url;
+  }
+
+  async function loadSavedImage(blob: Blob, fileName: string) {
+    const url = URL.createObjectURL(blob);
+
+    const img = new Image();
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("Could not load the project image."));
+      img.src = url;
+    });
+
+    if (!img.width || !img.height) {
+      throw new Error("The project image is not valid.");
+    }
+
+    setImageUrl(url);
+    setImageBlob(blob);
+    setImageFileName(fileName);
+    setSourcePixelWidth(img.width);
+    setSourcePixelHeight(img.height);
+    setImageAspectRatio(img.width / img.height);
   }
 
   function updateWidth(nextWidthRaw: number) {
@@ -243,6 +275,100 @@ export function useSlicerState() {
     }
   }
 
+  async function handleSaveProject() {
+    if (!imageBlob || !sourcePixelWidth || !sourcePixelHeight) {
+      setExportMessage("Please upload an image before saving a project.");
+      return;
+    }
+
+    const projectName =
+      imageFileName.replace(/\.[^.]+$/, "") || "WMS Saved Map";
+
+    setExportMessage("Saving project...");
+
+    try {
+      const projectBlob = await createProjectFile({
+        projectName,
+        mapName: projectName,
+        imageBlob,
+        imageFileName,
+        sourcePixelWidth,
+        sourcePixelHeight,
+        settings: {
+          printedWidthIn,
+          printedHeightIn,
+          maintainAspectRatio,
+          gridMode,
+          gridPerspectiveAngle,
+          gridRotation,
+          gridColor,
+          gridSizeIn,
+          gridPhaseX,
+          gridPhaseY,
+          gridLineThickness,
+          sliceSize,
+          sliceOrientation,
+          pageSetup: buildSavedPageSetup(sliceSize, sliceOrientation),
+          imageAdjustments,
+          imageZoom,
+          imageOffsetX,
+          imageOffsetY,
+          exportDpi: EXPORT_DPI,
+        },
+      });
+
+      const downloadUrl = URL.createObjectURL(projectBlob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = getProjectDownloadFileName(projectName);
+      link.click();
+      URL.revokeObjectURL(downloadUrl);
+
+      setExportMessage("Project saved.");
+    } catch (error) {
+      console.error(error);
+      setExportMessage("Project save failed.");
+    }
+  }
+
+  async function handleOpenProject(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setExportMessage("Opening project...");
+
+    try {
+      const project = await openProjectFile(file);
+      const settings = project.settings;
+
+      await loadSavedImage(project.imageBlob, project.imageFileName);
+
+      setPrintedWidthIn(settings.printedWidthIn);
+      setPrintedHeightIn(settings.printedHeightIn);
+      setMaintainAspectRatio(settings.maintainAspectRatio);
+      setGridMode(settings.gridMode);
+      setGridPerspectiveAngle(settings.gridPerspectiveAngle);
+      setGridRotation(settings.gridRotation);
+      setGridColor(settings.gridColor);
+      setGridSizeIn(settings.gridSizeIn);
+      setGridPhaseX(settings.gridPhaseX);
+      setGridPhaseY(settings.gridPhaseY);
+      setGridLineThickness(settings.gridLineThickness);
+      setSliceSize(settings.sliceSize);
+      setSliceOrientation(settings.sliceOrientation);
+      setImageAdjustments(settings.imageAdjustments);
+      setImageZoom(settings.imageZoom);
+      setImageOffsetX(settings.imageOffsetX);
+      setImageOffsetY(settings.imageOffsetY);
+
+      setExportMessage("Project opened.");
+    } catch (error) {
+      console.error(error);
+      setExportMessage("Project open failed.");
+    }
+  }
+
   function updateImageAdjustment<K extends keyof ImageAdjustments>(
     key: K,
     value: ImageAdjustments[K],
@@ -263,6 +389,8 @@ export function useSlicerState() {
   }
   return {
     imageUrl,
+    imageBlob,
+    imageFileName,
     imageAspectRatio,
     sourcePixelWidth,
     sourcePixelHeight,
@@ -310,6 +438,8 @@ export function useSlicerState() {
     setImageOffsetY,
 
     handleFileUpload,
+    handleSaveProject,
+    handleOpenProject,
     updateWidth,
     updateHeight,
     handleAspectRatioToggle,

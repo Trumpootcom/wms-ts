@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import PanelSection from "./ui/PanelSection.tsx";
 import NumberWithSlider from "./ui/NumberWithSlider.tsx";
 import type { useSlicerState } from "../hooks/useSlicerState.ts";
@@ -12,6 +13,8 @@ type ControlPanelProps = {
 };
 
 function ControlPanel({ slicer }: ControlPanelProps) {
+    const projectOpenInputRef = useRef<HTMLInputElement | null>(null);
+
     return (
         <aside
             style={{
@@ -275,6 +278,62 @@ function ControlPanel({ slicer }: ControlPanelProps) {
             >
                 {slicer.isExporting ? "Exporting PDF..." : "Export PDF"}
             </button>
+
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "8px",
+                }}
+            >
+                <button
+                    type="button"
+                    disabled={!slicer.imageUrl || !slicer.imageBlob}
+                    onClick={slicer.handleSaveProject}
+                    style={{
+                        border: `1px solid ${theme.control.buttonBorder}`,
+                        borderRadius: "8px",
+                        padding: "9px 10px",
+                        background:
+                            !slicer.imageUrl || !slicer.imageBlob
+                                ? `linear-gradient(to bottom, ${theme.control.buttonDisabledTop} 0%, ${theme.control.buttonDisabled} 45%, ${theme.control.buttonDisabledBottom} 100%)`
+                                : `linear-gradient(to bottom, ${theme.control.buttonPrimaryTop} 0%, ${theme.control.buttonPrimary} 45%, ${theme.control.buttonPrimaryBottom} 100%)`,
+                        color: theme.control.buttonText,
+                        fontWeight: 700,
+                        boxShadow: theme.control.buttonInsetHighlight,
+                        cursor:
+                            !slicer.imageUrl || !slicer.imageBlob
+                                ? "not-allowed"
+                                : "pointer",
+                    }}
+                >
+                    Save Project
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => projectOpenInputRef.current?.click()}
+                    style={{
+                        border: `1px solid ${theme.control.buttonBorder}`,
+                        borderRadius: "8px",
+                        padding: "9px 10px",
+                        background: `linear-gradient(to bottom, ${theme.control.buttonPrimaryTop} 0%, ${theme.control.buttonPrimary} 45%, ${theme.control.buttonPrimaryBottom} 100%)`,
+                        color: theme.control.buttonText,
+                        fontWeight: 700,
+                        boxShadow: theme.control.buttonInsetHighlight,
+                        cursor: "pointer",
+                    }}
+                >
+                    Open Project
+                </button>
+                <input
+                    ref={projectOpenInputRef}
+                    type="file"
+                    accept=".wmsts,application/zip,application/vnd.trumpoot.wmsts+zip"
+                    onChange={slicer.handleOpenProject}
+                    style={{ display: "none" }}
+                />
+            </div>
 
             {slicer.exportMessage && (
                 <div
