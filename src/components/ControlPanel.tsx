@@ -12,11 +12,21 @@ type ControlPanelProps = {
 
 function ControlPanel({ slicer }: ControlPanelProps) {
   return (
-    <aside style={{ display: "grid", gridAutoRows: "max-content", gap: "8px" }}>
+    <aside
+      style={{
+        minHeight: 0,
+        display: "grid",
+        gridAutoRows: "max-content",
+        alignContent: "start",
+        gap: "8px",
+        overflowY: "auto",
+        paddingRight: "2px",
+      }}
+    >
+      <ProjectsPane slicer={slicer} />
       <ImageControls slicer={slicer} />
       <GridControls slicer={slicer} />
       <OutputControls slicer={slicer} />
-      <ProjectsPane slicer={slicer} />
       <ExportActions slicer={slicer} />
 
       {slicer.exportMessage && (
