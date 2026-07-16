@@ -22,6 +22,7 @@ import {
   type LocalProjectSummary,
 } from "../slicer/projectStore.ts";
 import { createProjectThumbnail } from "../slicer/projectThumbnail.ts";
+import { prepareMobileImage } from "../slicer/mobileImageImport.ts";
 import {
   DEFAULT_HEIGHT_IN,
   DEFAULT_WIDTH_IN,
@@ -92,23 +93,21 @@ export function useSlicerState() {
   const [gridPhaseX, setGridPhaseX] = useState<number>(0);
   const [gridPhaseY, setGridPhaseY] = useState<number>(0);
 
-  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const url = URL.createObjectURL(file);
+    try {
+      const prepared = await prepareMobileImage(file);
+      const url = URL.createObjectURL(prepared.blob);
 
-    const img = new Image();
-    img.onload = () => {
-      if (!img.width || !img.height) return;
+      setSourcePixelWidth(prepared.width);
+      setSourcePixelHeight(prepared.height);
 
-      setSourcePixelWidth(img.width);
-      setSourcePixelHeight(img.height);
-
-      const aspect = img.width / img.height;
+      const aspect = prepared.width / prepared.height;
       setImageAspectRatio(aspect);
       setImageUrl(url);
-      setImageBlob(file);
+      setImageBlob(prepared.blob);
       setImageFileName(file.name || "map-image");
       setProjectName(file.name.replace(/\.[^.]+$/, "") || "WMS Saved Map");
       setActiveLocalProjectId(null);
@@ -128,8 +127,11 @@ export function useSlicerState() {
         setPrintedHeightIn(adjustedHeight);
         setPrintedWidthIn(adjustedWidth);
       }
-    };
-    img.src = url;
+      setExportMessage(prepared.rotated ? "Landscape image rotated to portrait." : "Image loaded.");
+    } catch (error) {
+      console.error(error);
+      setExportMessage("Image load failed.");
+    }
   }
 
   async function loadSavedImage(blob: Blob, fileName: string) {

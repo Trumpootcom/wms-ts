@@ -90,14 +90,16 @@ export type OpenedProjectFile = {
 };
 
 function getFileExtension(fileName: string, mimeType: string): string {
+  if (mimeType === "image/png") return "png";
+  if (mimeType === "image/webp") return "webp";
+  if (mimeType === "image/gif") return "gif";
+  if (mimeType === "image/jpeg") return "jpg";
+
   const extension = fileName.split(".").pop()?.toLowerCase();
   if (extension && /^[a-z0-9]+$/.test(extension)) {
     return extension;
   }
 
-  if (mimeType === "image/png") return "png";
-  if (mimeType === "image/webp") return "webp";
-  if (mimeType === "image/gif") return "gif";
   return "jpg";
 }
 
