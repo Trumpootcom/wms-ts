@@ -1,5 +1,5 @@
 // src/hooks/useSlicerState.ts
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   buildSliceEstimate,
   clamp,
@@ -12,6 +12,15 @@ import {
   getProjectDownloadFileName,
   openProjectFile,
 } from "../slicer/projectFile.ts";
+import {
+  deleteLocalProject,
+  getLocalProject,
+  listLocalProjects,
+  renameLocalProject,
+  requestPersistentProjectStorage,
+  saveLocalProject,
+  type LocalProjectSummary,
+} from "../slicer/projectStore.ts";
 import {
   DEFAULT_HEIGHT_IN,
   DEFAULT_WIDTH_IN,
@@ -54,6 +63,19 @@ export function useSlicerState() {
 
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [exportMessage, setExportMessage] = useState<string>("");
+  const [localProjects, setLocalProjects] = useState<LocalProjectSummary[]>([]);
+  const [activeLocalProjectId, setActiveLocalProjectId] = useState<string | null>(null);
+  const [projectName, setProjectName] = useState<string>("WMS Saved Map");
+  const [isRecentProjectsOpen, setIsRecentProjectsOpen] = useState(false);
+
+  async function refreshLocalProjects() {
+    setLocalProjects(await listLocalProjects());
+  }
+
+  useEffect(() => {
+    void refreshLocalProjects().catch(console.error);
+    void requestPersistentProjectStorage();
+  }, []);
 
   const [imageAdjustments, setImageAdjustments] = useState<ImageAdjustments>({
     brightness: 100,
@@ -88,6 +110,8 @@ export function useSlicerState() {
       setImageUrl(url);
       setImageBlob(file);
       setImageFileName(file.name || "map-image");
+      setProjectName(file.name.replace(/\.[^.]+$/, "") || "WMS Saved Map");
+      setActiveLocalProjectId(null);
 
       if (maintainAspectRatio) {
         const adjustedHeight = clamp(
@@ -275,21 +299,14 @@ export function useSlicerState() {
     }
   }
 
-  async function handleSaveProject() {
+  async function buildCurrentProjectBlob(name = projectName) {
     if (!imageBlob || !sourcePixelWidth || !sourcePixelHeight) {
-      setExportMessage("Please upload an image before saving a project.");
-      return;
+      throw new Error("Please upload an image before saving a project.");
     }
 
-    const projectName =
-      imageFileName.replace(/\.[^.]+$/, "") || "WMS Saved Map";
-
-    setExportMessage("Saving project...");
-
-    try {
-      const projectBlob = await createProjectFile({
-        projectName,
-        mapName: projectName,
+    return createProjectFile({
+        projectName: name,
+        mapName: name,
         imageBlob,
         imageFileName,
         sourcePixelWidth,
@@ -316,33 +333,49 @@ export function useSlicerState() {
           exportDpi: EXPORT_DPI,
         },
       });
+  }
 
-      const downloadUrl = URL.createObjectURL(projectBlob);
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = getProjectDownloadFileName(projectName);
-      link.click();
-      URL.revokeObjectURL(downloadUrl);
+  function downloadProject(blob: Blob, name: string) {
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = getProjectDownloadFileName(name);
+    link.click();
+    URL.revokeObjectURL(downloadUrl);
+  }
 
-      setExportMessage("Project saved.");
+  async function handleExportProject() {
+    setExportMessage("Exporting project...");
+    try {
+      const projectBlob = await buildCurrentProjectBlob();
+      downloadProject(projectBlob, projectName);
+      setExportMessage("Project exported.");
     } catch (error) {
       console.error(error);
-      setExportMessage("Project save failed.");
+      setExportMessage(error instanceof Error ? error.message : "Project export failed.");
     }
   }
 
-  async function handleOpenProject(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-
-    setExportMessage("Opening project...");
-
+  async function handleSaveProject() {
+    setExportMessage("Saving project locally...");
     try {
-      const project = await openProjectFile(file);
-      const settings = project.settings;
+      const projectBlob = await buildCurrentProjectBlob();
+      const saved = await saveLocalProject(projectBlob, projectName, activeLocalProjectId);
+      setActiveLocalProjectId(saved.id);
+      await refreshLocalProjects();
+      setExportMessage("Project saved locally.");
+    } catch (error) {
+      console.error(error);
+      setExportMessage(error instanceof Error ? error.message : "Local save failed.");
+    }
+  }
 
+  async function applyOpenedProject(blob: Blob, localId?: string, localName?: string) {
+      const project = await openProjectFile(blob);
+      const settings = project.settings;
       await loadSavedImage(project.imageBlob, project.imageFileName);
+      setProjectName(localName ?? project.projectName);
+      setActiveLocalProjectId(localId ?? null);
 
       setPrintedWidthIn(settings.printedWidthIn);
       setPrintedHeightIn(settings.printedHeightIn);
@@ -361,12 +394,60 @@ export function useSlicerState() {
       setImageZoom(settings.imageZoom);
       setImageOffsetX(settings.imageOffsetX);
       setImageOffsetY(settings.imageOffsetY);
+  }
 
-      setExportMessage("Project opened.");
+  async function handleOpenProject(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setExportMessage("Opening project...");
+
+    try {
+      await applyOpenedProject(file);
+      const imported = await saveLocalProject(file, file.name.replace(/\.wmsts$/i, ""));
+      setActiveLocalProjectId(imported.id);
+      setProjectName(imported.name);
+      await refreshLocalProjects();
+      setExportMessage("Project imported and added to Recent Projects.");
     } catch (error) {
       console.error(error);
       setExportMessage("Project open failed.");
     }
+  }
+
+  async function handleOpenLocalProject(id: string) {
+    setExportMessage("Opening local project...");
+    try {
+      const stored = await getLocalProject(id);
+      if (!stored) throw new Error("The local project no longer exists.");
+      await applyOpenedProject(stored.blob, stored.id, stored.name);
+      setIsRecentProjectsOpen(false);
+      setExportMessage("Local project opened.");
+    } catch (error) {
+      console.error(error);
+      setExportMessage("Local project open failed.");
+    }
+  }
+
+  async function handleRenameLocalProject(id: string, name: string) {
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+    await renameLocalProject(id, trimmedName);
+    if (id === activeLocalProjectId) setProjectName(trimmedName);
+    await refreshLocalProjects();
+  }
+
+  async function handleDeleteLocalProject(id: string) {
+    await deleteLocalProject(id);
+    if (id === activeLocalProjectId) setActiveLocalProjectId(null);
+    await refreshLocalProjects();
+  }
+
+  async function handleExportLocalProject(id: string) {
+    const stored = await getLocalProject(id);
+    if (!stored) return;
+    downloadProject(stored.blob, stored.name);
   }
 
   function updateImageAdjustment<K extends keyof ImageAdjustments>(
@@ -419,6 +500,9 @@ export function useSlicerState() {
 
     isExporting,
     exportMessage,
+    projectName,
+    localProjects,
+    isRecentProjectsOpen,
 
     imageAdjustments,
 
@@ -439,7 +523,13 @@ export function useSlicerState() {
 
     handleFileUpload,
     handleSaveProject,
+    handleExportProject,
     handleOpenProject,
+    handleOpenLocalProject,
+    handleRenameLocalProject,
+    handleDeleteLocalProject,
+    handleExportLocalProject,
+    setIsRecentProjectsOpen,
     updateWidth,
     updateHeight,
     handleAspectRatioToggle,

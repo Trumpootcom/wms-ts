@@ -7,6 +7,7 @@ import SvgIcon from "./ui/SvgIcon";
 import type { GridSize } from "../slicer/types.ts";
 import { DEFAULT_GRID_SIZE_IN, DEFAULT_HEIGHT_IN, DEFAULT_WIDTH_IN } from "../slicer/defaults.ts";
 import { theme } from "../theme.ts";
+import RecentProjectsDialog from "./RecentProjectsDialog.tsx";
 
 type ControlPanelProps = {
     slicer: ReturnType<typeof useSlicerState>;
@@ -354,7 +355,7 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                                 : "pointer",
                     }}
                 >
-                    Save Project
+                    Save Locally
                 </button>
 
                 <button
@@ -371,7 +372,7 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                         cursor: "pointer",
                     }}
                 >
-                    Open Project
+                    Import Project
                 </button>
                 <input
                     ref={projectOpenInputRef}
@@ -381,6 +382,52 @@ function ControlPanel({ slicer }: ControlPanelProps) {
                     style={{ display: "none" }}
                 />
             </div>
+
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "8px",
+                }}
+            >
+                <button
+                    type="button"
+                    onClick={() => slicer.setIsRecentProjectsOpen(true)}
+                    style={{
+                        border: `1px solid ${theme.control.buttonBorder}`,
+                        borderRadius: "8px",
+                        padding: "9px 10px",
+                        background: `linear-gradient(to bottom, ${theme.control.buttonPrimaryTop}, ${theme.control.buttonPrimaryBottom})`,
+                        color: theme.control.buttonText,
+                        fontWeight: 700,
+                        boxShadow: theme.control.buttonInsetHighlight,
+                        cursor: "pointer",
+                    }}
+                >
+                    Recent Projects ({slicer.localProjects.length})
+                </button>
+                <button
+                    type="button"
+                    disabled={!slicer.imageBlob}
+                    onClick={slicer.handleExportProject}
+                    style={{
+                        border: `1px solid ${theme.control.buttonBorder}`,
+                        borderRadius: "8px",
+                        padding: "9px 10px",
+                        background: !slicer.imageBlob
+                            ? `linear-gradient(to bottom, ${theme.control.buttonDisabledTop}, ${theme.control.buttonDisabledBottom})`
+                            : `linear-gradient(to bottom, ${theme.control.buttonPrimaryTop}, ${theme.control.buttonPrimaryBottom})`,
+                        color: theme.control.buttonText,
+                        fontWeight: 700,
+                        boxShadow: theme.control.buttonInsetHighlight,
+                        cursor: slicer.imageBlob ? "pointer" : "not-allowed",
+                    }}
+                >
+                    Export Project
+                </button>
+            </div>
+
+            {slicer.isRecentProjectsOpen ? <RecentProjectsDialog slicer={slicer} /> : null}
 
             {slicer.exportMessage && (
                 <div

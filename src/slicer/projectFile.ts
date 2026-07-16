@@ -212,7 +212,7 @@ export async function createProjectFile({
   return new Blob([toBlobPart(zipBytes)], { type: WMS_PROJECT_MIME_TYPE });
 }
 
-export async function openProjectFile(file: File): Promise<OpenedProjectFile> {
+export async function openProjectFile(file: Blob): Promise<OpenedProjectFile> {
   const zipBytes = new Uint8Array(await file.arrayBuffer());
   const zipEntries = unzipSync(zipBytes);
   const projectJson = getProjectJson(zipEntries);
