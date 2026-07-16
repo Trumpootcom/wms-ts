@@ -105,6 +105,7 @@ function sanitizeFileName(value: string): string {
     .trim()
     .replace(/\.[^.]+$/, "")
     .replace(/[^a-z0-9-_]+/gi, "-")
+    .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
 
   return safe || "wms-map";
