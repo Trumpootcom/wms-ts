@@ -13,6 +13,7 @@ type ControlPanelProps = {
 };
 
 function ControlPanel({ slicer }: ControlPanelProps) {
+    const imageInputRef = useRef<HTMLInputElement | null>(null);
     const projectOpenInputRef = useRef<HTMLInputElement | null>(null);
 
     return (
@@ -26,8 +27,53 @@ function ControlPanel({ slicer }: ControlPanelProps) {
             {/* <h2 style={{ marginTop: 0, marginBottom: "5px" }}>Controls</h2> */}
 
             <PanelSection title="Image Controls">
-                <div style={{ marginBottom: "5px" }}>
-                    <input type="file" accept="image/*" onChange={slicer.handleFileUpload} />
+                <div
+                    style={{
+                        display: "grid",
+                        gridTemplateColumns: "auto minmax(0, 1fr)",
+                        gap: "8px",
+                        alignItems: "center",
+                        marginBottom: "8px",
+                    }}
+                >
+                    <button
+                        type="button"
+                        onClick={() => imageInputRef.current?.click()}
+                        style={{
+                            border: `1px solid ${theme.control.buttonBorder}`,
+                            borderRadius: "6px",
+                            padding: "5px 9px",
+                            background: `linear-gradient(to bottom, ${theme.control.buttonPrimaryTop} 0%, ${theme.control.buttonPrimary} 45%, ${theme.control.buttonPrimaryBottom} 100%)`,
+                            color: theme.control.buttonText,
+                            fontWeight: 700,
+                            boxShadow: theme.control.buttonInsetHighlight,
+                            cursor: "pointer",
+                        }}
+                    >
+                        Choose File
+                    </button>
+                    <span
+                        title={slicer.imageUrl ? slicer.imageFileName : "No file chosen"}
+                        style={{
+                            minWidth: 0,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            color: slicer.imageUrl
+                                ? theme.panel.text
+                                : theme.panel.mutedText,
+                            fontSize: "13px",
+                        }}
+                    >
+                        {slicer.imageUrl ? slicer.imageFileName : "No file chosen"}
+                    </span>
+                    <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={slicer.handleFileUpload}
+                        style={{ display: "none" }}
+                    />
                 </div>
                 <NumberWithSlider
                     label="Bright"
