@@ -6,10 +6,17 @@ export type SliceOrientation = "portrait" | "landscape";
 export type GridSize = number;
 
 export type ImageAdjustments = {
-  brightness: number; // -100 to 100
-  contrast: number;   // -100 to 100
-  saturation: number; // -100 to 100
-  gamma: number;      // 0.5 to 2.0
+  brightness: number; // 0 to 200
+  exposure: number; // -3 to +3 stops
+  contrast: number;   // 0 to 200
+  saturation: number; // 0 to 200
+  gamma: number;      // 0.2 to 3.0
+  shadowLift: number; // 0 to 100
+  shadows: number; // -100 to 100
+  highlights: number; // -100 to 100
+  curveInput: number; // 0 to 255
+  curveOutput: number; // 0 to 255
+  perspective: number; // -1 bottom expansion to +1 top expansion
 };
 
 export type Tile = {

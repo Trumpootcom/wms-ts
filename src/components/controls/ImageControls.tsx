@@ -29,6 +29,7 @@ export default function ImageControls({ slicer }: SlicerControlsProps) {
       <NumberWithSlider label="Contrast" value={slicer.imageAdjustments.contrast} min={0} max={200} defaultValue={100} stepInput={1} stepSlider={1} onChange={(value) => slicer.updateImageAdjustment("contrast", value)} />
       <NumberWithSlider label="Saturation" value={slicer.imageAdjustments.saturation} min={0} max={200} defaultValue={100} stepInput={1} stepSlider={1} onChange={(value) => slicer.updateImageAdjustment("saturation", value)} />
       <NumberWithSlider label="Gamma" value={slicer.imageAdjustments.gamma} min={0.2} max={3} defaultValue={1} stepInput={0.1} stepSlider={0.1} onChange={(value) => slicer.updateImageAdjustment("gamma", value)} />
+      <NumberWithSlider label="Shadow Lift" value={slicer.imageAdjustments.shadowLift} min={0} max={100} defaultValue={0} stepInput={1} stepSlider={1} onChange={(value) => slicer.updateImageAdjustment("shadowLift", value)} />
       <NumberWithSlider label="Zoom" value={slicer.imageZoom} defaultValue={100} min={100} max={200} stepInput={0.1} stepSlider={0.1} onChange={slicer.setImageZoom} />
       <NumberWithSlider label="Offset X" value={slicer.imageOffsetX} defaultValue={0} min={-100} max={100} stepInput={0.1} stepSlider={0.1} onChange={slicer.setImageOffsetX} />
       <NumberWithSlider label="Offset Y" value={slicer.imageOffsetY} defaultValue={0} min={-100} max={100} stepInput={0.1} stepSlider={0.1} onChange={slicer.setImageOffsetY} />

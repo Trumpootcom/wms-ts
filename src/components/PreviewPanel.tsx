@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef, useState } from "react";
-import type { CSSProperties, PointerEvent, WheelEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { PointerEvent, WheelEvent } from "react";
 import type {
   GridColor,
   GridMode,
@@ -10,11 +10,12 @@ import type {
   SliceSize,
 } from "../slicer/types.ts";
 import { buildImageViewRect } from "../slicer/imageView.ts";
+import { drawAdjustedSliceToCanvas, evaluateToneCurve } from "../slicer/imageAdjustments.ts";
 import { getTileConfig } from "../slicer/math.ts";
 import { getGridBasis, invert2x2 } from "../slicer/latticeMath.ts";
 import { theme } from "../theme.ts";
+import { IMAGE_ADJUSTMENT_CONFIG } from "../slicer/imageAdjustmentConfig.ts";
 import SvgGridLayer from "./ui/SvgGridLayer";
-import PanelSection from "./ui/PanelSection.tsx";
 
 type SourceSizeReport = {
   sourceWidthIn: number;
@@ -54,6 +55,19 @@ type PreviewPanelProps = {
   setGridPhaseY: (value: number) => void;
   hideGestureGuidance?: boolean;
   touchInteractionMode?: "image" | "grid";
+  bare?: boolean;
+  curveEditorOpen?: boolean;
+  onCurveChange?: (input: number, output: number) => void;
+  onCurveCommit?: () => void;
+  brightnessContrastEditorOpen?: boolean;
+  onBrightnessContrastChange?: (exposure: number, contrast: number) => void;
+  onBrightnessContrastCommit?: () => void;
+  shadowsHighlightsEditorOpen?: boolean;
+  onShadowsHighlightsChange?: (shadows: number, highlights: number) => void;
+  onShadowsHighlightsCommit?: () => void;
+  perspectiveEditorOpen?: boolean;
+  onPerspectiveChange?: (perspective: number) => void;
+  onPerspectiveCommit?: () => void;
 };
 
 type DragStart = {
@@ -110,11 +124,25 @@ function PreviewPanel({
   setGridPhaseY,
   hideGestureGuidance = false,
   touchInteractionMode = "image",
+  bare = false,
+  curveEditorOpen = false,
+  onCurveChange,
+  onCurveCommit,
+  brightnessContrastEditorOpen = false,
+  onBrightnessContrastChange,
+  onBrightnessContrastCommit,
+  shadowsHighlightsEditorOpen = false,
+  onShadowsHighlightsChange,
+  onShadowsHighlightsCommit,
+  perspectiveEditorOpen = false,
+  onPerspectiveChange,
+  onPerspectiveCommit,
 }: PreviewPanelProps) {
   const previewPaddingPx = 5;
   const previewBorderPx = 1;
 
   const previewMeasureRef = useRef<HTMLDivElement | null>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const dragStartRef = useRef<DragStart | null>(null);
   const activePointersRef = useRef(new Map<number, { x: number; y: number }>());
   const pinchStartRef = useRef<PinchStart | null>(null);
@@ -122,6 +150,11 @@ function PreviewPanel({
     touchInteractionMode,
   );
   const [previewStage, setPreviewStage] = useState({ width: 1, height: 1 });
+  const [sourceImage, setSourceImage] = useState<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    setTouchMode(touchInteractionMode);
+  }, [touchInteractionMode]);
 
   useLayoutEffect(() => {
     const node = previewMeasureRef.current;
@@ -160,17 +193,37 @@ function PreviewPanel({
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    if (!imageUrl) {
+      setSourceImage(null);
+      return;
+    }
+
+    let cancelled = false;
+    const image = new Image();
+
+    image.onload = () => {
+      if (!cancelled) {
+        setSourceImage(image);
+      }
+    };
+    image.onerror = () => {
+      if (!cancelled) {
+        setSourceImage(null);
+      }
+    };
+    image.src = imageUrl;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [imageUrl]);
+
   const sliceLineColor =
     gridColor === "black"
       ? "rgba(220, 38, 38, 0.95)"
       : "rgba(239, 68, 68, 0.95)";
   const tileConfig = getTileConfig(sliceSize, sliceOrientation);
-
-  const imageFilter = `
-    brightness(${imageAdjustments.brightness}%)
-    contrast(${imageAdjustments.contrast}%)
-    saturate(${imageAdjustments.saturation}%)
-  `;
 
   const stageAspect = printedWidthIn / printedHeightIn;
 
@@ -188,18 +241,12 @@ function PreviewPanel({
   frameWidthPx = Math.floor(frameWidthPx);
   frameHeightPx = Math.floor(frameHeightPx);
 
-  let previewImageStyle: CSSProperties = {
-    width: "100%",
-    height: "100%",
-    objectFit: "fill",
-    display: "block",
-    filter: imageFilter,
-  };
   let imagePanScaleX = 0;
   let imagePanScaleY = 0;
+  let imageViewRect: ReturnType<typeof buildImageViewRect> | null = null;
 
   if (sourcePixelWidth && sourcePixelHeight) {
-    const viewRect = buildImageViewRect({
+    imageViewRect = buildImageViewRect({
       sourceImageWidth: sourcePixelWidth,
       sourceImageHeight: sourcePixelHeight,
       printedWidthIn,
@@ -209,34 +256,47 @@ function PreviewPanel({
       imageOffsetY,
     });
 
-    const scaleX = frameWidthPx / viewRect.sourceWidth;
-    const scaleY = frameHeightPx / viewRect.sourceHeight;
-    const maxOffsetX = Math.max(0, (sourcePixelWidth - viewRect.sourceWidth) / 2);
+    const scaleX = frameWidthPx / imageViewRect.sourceWidth;
+    const scaleY = frameHeightPx / imageViewRect.sourceHeight;
+    const maxOffsetX = Math.max(0, (sourcePixelWidth - imageViewRect.sourceWidth) / 2);
     const maxOffsetY = Math.max(
       0,
-      (sourcePixelHeight - viewRect.sourceHeight) / 2,
+      (sourcePixelHeight - imageViewRect.sourceHeight) / 2,
     );
 
     imagePanScaleX = maxOffsetX > 0 ? 100 / (scaleX * maxOffsetX) : 0;
     imagePanScaleY = maxOffsetY > 0 ? 100 / (scaleY * maxOffsetY) : 0;
-
-    previewImageStyle = {
-      position: "absolute",
-      left: `${-viewRect.sourceX * scaleX}px`,
-      top: `${-viewRect.sourceY * scaleY}px`,
-      width: `${sourcePixelWidth * scaleX}px`,
-      height: `${sourcePixelHeight * scaleY}px`,
-      display: "block",
-      filter: imageFilter,
-      maxWidth: "none",
-      maxHeight: "none",
-    };
   }
+
+  useEffect(() => {
+    const canvas = previewCanvasRef.current;
+    if (!canvas) return;
+
+    if (!sourceImage || !imageViewRect || frameWidthPx < 1 || frameHeightPx < 1) {
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      return;
+    }
+
+    drawAdjustedSliceToCanvas({
+      canvas,
+      image: sourceImage,
+      sourceX: imageViewRect.sourceX,
+      sourceY: imageViewRect.sourceY,
+      sourceWidth: imageViewRect.sourceWidth,
+      sourceHeight: imageViewRect.sourceHeight,
+      destWidth: frameWidthPx,
+      destHeight: frameHeightPx,
+      adjustments: imageAdjustments,
+    });
+  }, [sourceImage, imageViewRect, frameWidthPx, frameHeightPx, imageAdjustments]);
 
   function handlePreviewWheel(e: WheelEvent<HTMLDivElement>) {
     e.preventDefault();
 
-    if (e.altKey) {
+    if (touchMode === "grid") {
       const gridStep = e.deltaY < 0 ? 0.1 : -0.1;
       setGridSizeIn(roundToTenth(clamp(gridSizeIn + gridStep, 0.5, 1.5)));
       return;
@@ -363,6 +423,48 @@ function PreviewPanel({
     }
   }
 
+  function updateCurveFromPointer(e: PointerEvent<SVGSVGElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const input = clamp(Math.round(((e.clientX - rect.left) / rect.width) * 255), 1, 254);
+    const output = clamp(Math.round((1 - (e.clientY - rect.top) / rect.height) * 255), 0, 255);
+    onCurveChange?.(input, output);
+  }
+
+  function updateBrightnessContrastFromPointer(e: PointerEvent<SVGSVGElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const exposureConfig = IMAGE_ADJUSTMENT_CONFIG.exposure;
+    const contrastConfig = IMAGE_ADJUSTMENT_CONFIG.contrast;
+    const exposure = Math.round(clamp(
+      exposureConfig.min + ((e.clientX - rect.left) / rect.width) * (exposureConfig.max - exposureConfig.min),
+      exposureConfig.min,
+      exposureConfig.max,
+    ) / exposureConfig.step) * exposureConfig.step;
+    const contrast = clamp(Math.round(
+      contrastConfig.min + (1 - (e.clientY - rect.top) / rect.height) * (contrastConfig.max - contrastConfig.min),
+    ), contrastConfig.min, contrastConfig.max);
+    onBrightnessContrastChange?.(exposure, contrast);
+  }
+
+  function updateShadowsHighlightsFromPointer(e: PointerEvent<SVGSVGElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const shadows = clamp(Math.round((((e.clientX - rect.left) / rect.width) * 200) - 100), -100, 100);
+    const highlights = clamp(Math.round((1 - (e.clientY - rect.top) / rect.height) * 200 - 100), -100, 100);
+    onShadowsHighlightsChange?.(shadows, highlights);
+  }
+
+  function updatePerspectiveFromPointer(e: PointerEvent<SVGSVGElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const config = IMAGE_ADJUSTMENT_CONFIG.perspective;
+    const value = config.max - ((e.clientY - rect.top) / rect.height) * (config.max - config.min);
+    onPerspectiveChange?.(Math.round(clamp(value, config.min, config.max) / config.step) * config.step);
+  }
+
+  const curvePath = Array.from({ length: 65 }, (_, index) => {
+    const input = (index / 64) * 255;
+    const output = evaluateToneCurve(imageAdjustments.curveInput ?? 128, imageAdjustments.curveOutput ?? 128, input);
+    return `${index === 0 ? "M" : "L"} ${input} ${255 - output}`;
+  }).join(" ");
+
   return (
     <div
       style={{
@@ -372,7 +474,6 @@ function PreviewPanel({
         display: "grid",
       }}
     >
-      <PanelSection title="Preview" bodyPadding="0px" fillHeight>
         <div
           ref={previewMeasureRef}
           style={{
@@ -392,7 +493,7 @@ function PreviewPanel({
           }}
           onWheel={handlePreviewWheel}
         >
-          <fieldset
+          {!bare && <fieldset
             className="mobile-touch-mode"
             aria-label="Preview zoom and pan target"
           >
@@ -412,7 +513,7 @@ function PreviewPanel({
                 {mode === "image" ? "Image" : "Grid"}
               </label>
             ))}
-          </fieldset>
+          </fieldset>}
 
           {!hideGestureGuidance && <div className="preview-gesture-guidance"
             style={{
@@ -515,13 +616,20 @@ function PreviewPanel({
                   overflow: "hidden",
                 }}
               >
-                <img
-                  src={imageUrl}
-                  alt="Uploaded map preview"
-                  style={previewImageStyle}
+                <canvas
+                  ref={previewCanvasRef}
+                  aria-label="Uploaded map preview"
+                  role="img"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    display: "block",
+                  }}
                 />
 
-                <SvgGridLayer
+                {!curveEditorOpen && !brightnessContrastEditorOpen && !shadowsHighlightsEditorOpen && !perspectiveEditorOpen && <SvgGridLayer
                   printedWidthIn={printedWidthIn}
                   printedHeightIn={printedHeightIn}
                   gridMode={gridMode}
@@ -532,9 +640,9 @@ function PreviewPanel({
                   gridPhaseX={gridPhaseX}
                   gridPhaseY={gridPhaseY}
                   gridLineThickness={gridLineThickness}
-                />
+                />}
 
-                <div
+                {!curveEditorOpen && !brightnessContrastEditorOpen && !shadowsHighlightsEditorOpen && !perspectiveEditorOpen && <div
                   id="page-slice-overlay"
                   style={{
                     position: "absolute",
@@ -552,7 +660,170 @@ function PreviewPanel({
                     backgroundPosition: "0 0, 0 0",
                     backgroundRepeat: "repeat",
                   }}
-                />
+                />}
+
+                {curveEditorOpen && <svg
+                  viewBox="0 0 255 255"
+                  preserveAspectRatio="none"
+                  aria-label="Tone curve editor"
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    updateCurveFromPointer(event);
+                  }}
+                  onPointerMove={(event) => {
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) updateCurveFromPointer(event);
+                  }}
+                  onPointerUp={(event) => {
+                    event.stopPropagation();
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+                    onCurveCommit?.();
+                  }}
+                  onPointerCancel={onCurveCommit}
+                  style={{ position: "absolute", inset: 0, zIndex: 6, width: "100%", height: "100%", background: "transparent", touchAction: "none", cursor: "crosshair" }}
+                >
+                  <line x1="0" y1="255" x2="255" y2="0" stroke="white" strokeOpacity="0.7" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <path d={curvePath} fill="none" stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                </svg>}
+                {curveEditorOpen && <span aria-hidden="true" style={{
+                  position: "absolute",
+                  zIndex: 7,
+                  left: `${((imageAdjustments.curveInput ?? 128) / 255) * 100}%`,
+                  top: `${(1 - (imageAdjustments.curveOutput ?? 128) / 255) * 100}%`,
+                  width: "4px",
+                  height: "4px",
+                  boxSizing: "border-box",
+                  border: "1px solid black",
+                  borderRadius: "50%",
+                  background: "white",
+                  transform: "translate(-50%, -50%)",
+                  pointerEvents: "none",
+                }} />}
+                {brightnessContrastEditorOpen && <svg
+                  viewBox="0 0 200 200"
+                  preserveAspectRatio="none"
+                  aria-label="Brightness and contrast editor"
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    updateBrightnessContrastFromPointer(event);
+                  }}
+                  onPointerMove={(event) => {
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) updateBrightnessContrastFromPointer(event);
+                  }}
+                  onPointerUp={(event) => {
+                    event.stopPropagation();
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+                    onBrightnessContrastCommit?.();
+                  }}
+                  onPointerCancel={onBrightnessContrastCommit}
+                  style={{ position: "absolute", inset: 0, zIndex: 6, width: "100%", height: "100%", background: "transparent", touchAction: "none", cursor: "crosshair" }}
+                >
+                  <line x1="100" y1="0" x2="100" y2="200" stroke="white" strokeOpacity="0.75" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <line x1="0" y1="100" x2="200" y2="100" stroke="white" strokeOpacity="0.75" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <line
+                    x1="100"
+                    y1="100"
+                    x2={((imageAdjustments.exposure - IMAGE_ADJUSTMENT_CONFIG.exposure.min) / (IMAGE_ADJUSTMENT_CONFIG.exposure.max - IMAGE_ADJUSTMENT_CONFIG.exposure.min)) * 200}
+                    y2={200 - ((imageAdjustments.contrast - IMAGE_ADJUSTMENT_CONFIG.contrast.min) / (IMAGE_ADJUSTMENT_CONFIG.contrast.max - IMAGE_ADJUSTMENT_CONFIG.contrast.min)) * 200}
+                    stroke="white"
+                    strokeWidth="2"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                </svg>}
+                {brightnessContrastEditorOpen && <span aria-hidden="true" style={{
+                  position: "absolute",
+                  zIndex: 7,
+                  left: `${((imageAdjustments.exposure - IMAGE_ADJUSTMENT_CONFIG.exposure.min) / (IMAGE_ADJUSTMENT_CONFIG.exposure.max - IMAGE_ADJUSTMENT_CONFIG.exposure.min)) * 100}%`,
+                  top: `${(1 - (imageAdjustments.contrast - IMAGE_ADJUSTMENT_CONFIG.contrast.min) / (IMAGE_ADJUSTMENT_CONFIG.contrast.max - IMAGE_ADJUSTMENT_CONFIG.contrast.min)) * 100}%`,
+                  width: "4px",
+                  height: "4px",
+                  boxSizing: "border-box",
+                  border: "1px solid black",
+                  borderRadius: "50%",
+                  background: "white",
+                  transform: "translate(-50%, -50%)",
+                  pointerEvents: "none",
+                }} />}
+                {shadowsHighlightsEditorOpen && <svg
+                  viewBox="0 0 200 200"
+                  preserveAspectRatio="none"
+                  aria-label="Shadows and highlights editor"
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    updateShadowsHighlightsFromPointer(event);
+                  }}
+                  onPointerMove={(event) => {
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) updateShadowsHighlightsFromPointer(event);
+                  }}
+                  onPointerUp={(event) => {
+                    event.stopPropagation();
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+                    onShadowsHighlightsCommit?.();
+                  }}
+                  onPointerCancel={onShadowsHighlightsCommit}
+                  style={{ position: "absolute", inset: 0, zIndex: 6, width: "100%", height: "100%", background: "transparent", touchAction: "none", cursor: "crosshair" }}
+                >
+                  <line x1="100" y1="0" x2="100" y2="200" stroke="white" strokeOpacity="0.75" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <line x1="0" y1="100" x2="200" y2="100" stroke="white" strokeOpacity="0.75" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <line x1="100" y1="100" x2={(imageAdjustments.shadows ?? 0) + 100} y2={100 - (imageAdjustments.highlights ?? 0)} stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                </svg>}
+                {shadowsHighlightsEditorOpen && <span aria-hidden="true" style={{
+                  position: "absolute",
+                  zIndex: 7,
+                  left: `${((imageAdjustments.shadows ?? 0) + 100) / 2}%`,
+                  top: `${(100 - (imageAdjustments.highlights ?? 0)) / 2}%`,
+                  width: "4px",
+                  height: "4px",
+                  boxSizing: "border-box",
+                  border: "1px solid black",
+                  borderRadius: "50%",
+                  background: "white",
+                  transform: "translate(-50%, -50%)",
+                  pointerEvents: "none",
+                }} />}
+                {perspectiveEditorOpen && <svg
+                  viewBox="0 0 200 200"
+                  preserveAspectRatio="none"
+                  aria-label="Perspective editor"
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    updatePerspectiveFromPointer(event);
+                  }}
+                  onPointerMove={(event) => {
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) updatePerspectiveFromPointer(event);
+                  }}
+                  onPointerUp={(event) => {
+                    event.stopPropagation();
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+                    onPerspectiveCommit?.();
+                  }}
+                  onPointerCancel={onPerspectiveCommit}
+                  style={{ position: "absolute", inset: 0, zIndex: 6, width: "100%", height: "100%", background: "transparent", touchAction: "none", cursor: "ns-resize" }}
+                >
+                  <line x1="0" y1="100" x2="200" y2="100" stroke="white" strokeOpacity="0.75" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <line x1="100" y1="100" x2="100" y2={100 - (imageAdjustments.perspective ?? 0) * 100} stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                </svg>}
+                {perspectiveEditorOpen && <span aria-hidden="true" style={{
+                  position: "absolute",
+                  zIndex: 7,
+                  left: "50%",
+                  top: `${(1 - (imageAdjustments.perspective ?? 0)) * 50}%`,
+                  width: "4px",
+                  height: "4px",
+                  boxSizing: "border-box",
+                  border: "1px solid black",
+                  borderRadius: "50%",
+                  background: "white",
+                  transform: "translate(-50%, -50%)",
+                  pointerEvents: "none",
+                }} />}
               </div>
             ) : (
               <div
@@ -573,7 +844,6 @@ function PreviewPanel({
             )}
           </div>
         </div>
-      </PanelSection>
     </div>
   );
 }

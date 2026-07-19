@@ -108,6 +108,7 @@ function PreviewInfoRow({
           <div>Contrast: {imageAdjustments.contrast}</div>
           <div>Saturation: {imageAdjustments.saturation}</div>
           <div>Gamma: {imageAdjustments.gamma}</div>
+          <div>Shadow Lift: {imageAdjustments.shadowLift}</div>
         </div>
       </PanelSection>
 

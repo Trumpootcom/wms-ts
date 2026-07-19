@@ -38,6 +38,30 @@ import type {
   SliceOrientation,
   SliceSize,
 } from "../slicer/types.ts";
+import { IMAGE_ADJUSTMENT_CONFIG } from "../slicer/imageAdjustmentConfig.ts";
+
+const DEFAULT_IMAGE_ADJUSTMENTS: ImageAdjustments = {
+  brightness: IMAGE_ADJUSTMENT_CONFIG.brightness.neutral,
+  exposure: IMAGE_ADJUSTMENT_CONFIG.exposure.neutral,
+  contrast: IMAGE_ADJUSTMENT_CONFIG.contrast.neutral,
+  saturation: 100,
+  gamma: 1,
+  shadowLift: 0,
+  shadows: IMAGE_ADJUSTMENT_CONFIG.shadows.neutral,
+  highlights: IMAGE_ADJUSTMENT_CONFIG.highlights.neutral,
+  curveInput: IMAGE_ADJUSTMENT_CONFIG.curve.neutralInput,
+  curveOutput: IMAGE_ADJUSTMENT_CONFIG.curve.neutralOutput,
+  perspective: IMAGE_ADJUSTMENT_CONFIG.perspective.neutral,
+};
+
+function normalizeImageAdjustments(
+  adjustments: Partial<ImageAdjustments> | undefined,
+): ImageAdjustments {
+  return {
+    ...DEFAULT_IMAGE_ADJUSTMENTS,
+    ...adjustments,
+  };
+}
 
 export function useSlicerState() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -78,12 +102,9 @@ export function useSlicerState() {
     void requestPersistentProjectStorage();
   }, []);
 
-  const [imageAdjustments, setImageAdjustments] = useState<ImageAdjustments>({
-    brightness: 100,
-    contrast: 100,
-    saturation: 100,
-    gamma: 1,
-  });
+  const [imageAdjustments, setImageAdjustments] = useState<ImageAdjustments>(
+    DEFAULT_IMAGE_ADJUSTMENTS,
+  );
 
   const [imageZoom, setImageZoom] = useState(100);
   const [imageOffsetX, setImageOffsetX] = useState(0);
@@ -400,7 +421,7 @@ export function useSlicerState() {
       setGridLineThickness(settings.gridLineThickness);
       setSliceSize(settings.sliceSize);
       setSliceOrientation(settings.sliceOrientation);
-      setImageAdjustments(settings.imageAdjustments);
+      setImageAdjustments(normalizeImageAdjustments(settings.imageAdjustments));
       setImageZoom(settings.imageZoom);
       setImageOffsetX(settings.imageOffsetX);
       setImageOffsetY(settings.imageOffsetY);
@@ -477,12 +498,35 @@ export function useSlicerState() {
   }
 
   function resetImageAdjustments() {
-    setImageAdjustments({
-      brightness: 100,
-      contrast: 100,
-      saturation: 100,
-      gamma: 1,
-    });
+    setImageAdjustments(DEFAULT_IMAGE_ADJUSTMENTS);
+  }
+
+  function setImageCurve(input: number, output: number) {
+    setImageAdjustments((prev) => ({
+      ...prev,
+      curveInput: input,
+      curveOutput: output,
+    }));
+  }
+
+  function setExposureContrast(exposure: number, contrast: number) {
+    setImageAdjustments((prev) => ({
+      ...prev,
+      exposure,
+      contrast,
+    }));
+  }
+
+  function setShadowsHighlights(shadows: number, highlights: number) {
+    setImageAdjustments((prev) => ({
+      ...prev,
+      shadows,
+      highlights,
+    }));
+  }
+
+  function setImagePerspective(perspective: number) {
+    setImageAdjustments((prev) => ({ ...prev, perspective }));
   }
   return {
     imageUrl,
@@ -552,6 +596,10 @@ export function useSlicerState() {
 
     updateImageAdjustment,
     resetImageAdjustments,
+    setImageCurve,
+    setExposureContrast,
+    setShadowsHighlights,
+    setImagePerspective,
 
     exportDpi: EXPORT_DPI,
   };
