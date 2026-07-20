@@ -36,11 +36,36 @@ function canvasToBlob(canvas: HTMLCanvasElement, sourceType: string) {
   });
 }
 
-export async function prepareMobileImage(file: File): Promise<PreparedImage> {
-  const image = await loadImage(file);
-  const isMobile = window.matchMedia("(max-width: 720px)").matches;
+function fittedArea(
+  imageWidth: number,
+  imageHeight: number,
+  pageWidth: number,
+  pageHeight: number,
+) {
+  const scale = Math.min(pageWidth / imageWidth, pageHeight / imageHeight);
+  return imageWidth * imageHeight * scale * scale;
+}
 
-  if (!isMobile || image.naturalWidth <= image.naturalHeight) {
+export async function prepareImageForPage(
+  file: File,
+  pageWidth: number,
+  pageHeight: number,
+): Promise<PreparedImage> {
+  const image = await loadImage(file);
+  const currentFit = fittedArea(
+    image.naturalWidth,
+    image.naturalHeight,
+    pageWidth,
+    pageHeight,
+  );
+  const rotatedFit = fittedArea(
+    image.naturalHeight,
+    image.naturalWidth,
+    pageWidth,
+    pageHeight,
+  );
+
+  if (rotatedFit <= currentFit) {
     return {
       blob: file,
       width: image.naturalWidth,

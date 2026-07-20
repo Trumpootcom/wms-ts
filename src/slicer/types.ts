@@ -10,6 +10,7 @@ export type ImageAdjustments = {
   exposure: number; // -3 to +3 stops
   contrast: number;   // 0 to 200
   saturation: number; // 0 to 200
+  vibrance: number; // -100 to 100
   gamma: number;      // 0.2 to 3.0
   shadowLift: number; // 0 to 100
   shadows: number; // -100 to 100
@@ -17,6 +18,8 @@ export type ImageAdjustments = {
   curveInput: number; // 0 to 255
   curveOutput: number; // 0 to 255
   perspective: number; // -1 bottom expansion to +1 top expansion
+  levelsBlack: number; // 0 to 127
+  levelsWhite: number; // 128 to 255
 };
 
 export type Tile = {

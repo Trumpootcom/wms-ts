@@ -68,6 +68,15 @@ type PreviewPanelProps = {
   perspectiveEditorOpen?: boolean;
   onPerspectiveChange?: (perspective: number) => void;
   onPerspectiveCommit?: () => void;
+  saturationVibranceEditorOpen?: boolean;
+  onSaturationVibranceChange?: (saturation: number, vibrance: number) => void;
+  onSaturationVibranceCommit?: () => void;
+  levelsEditorOpen?: boolean;
+  onLevelsChange?: (black: number, white: number) => void;
+  onLevelsCommit?: () => void;
+  gammaEditorOpen?: boolean;
+  onGammaChange?: (gamma: number) => void;
+  onGammaCommit?: () => void;
 };
 
 type DragStart = {
@@ -137,6 +146,15 @@ function PreviewPanel({
   perspectiveEditorOpen = false,
   onPerspectiveChange,
   onPerspectiveCommit,
+  saturationVibranceEditorOpen = false,
+  onSaturationVibranceChange,
+  onSaturationVibranceCommit,
+  levelsEditorOpen = false,
+  onLevelsChange,
+  onLevelsCommit,
+  gammaEditorOpen = false,
+  onGammaChange,
+  onGammaCommit,
 }: PreviewPanelProps) {
   const previewPaddingPx = 5;
   const previewBorderPx = 1;
@@ -151,10 +169,38 @@ function PreviewPanel({
   );
   const [previewStage, setPreviewStage] = useState({ width: 1, height: 1 });
   const [sourceImage, setSourceImage] = useState<HTMLImageElement | null>(null);
+  const [gammaPointer, setGammaPointer] = useState({ x: 100, y: 100 });
+  const [levelsPointer, setLevelsPointer] = useState({ x: 100, y: 100 });
+  const imageAdjustmentsRef = useRef(imageAdjustments);
+
+  useEffect(() => {
+    imageAdjustmentsRef.current = imageAdjustments;
+  }, [imageAdjustments]);
 
   useEffect(() => {
     setTouchMode(touchInteractionMode);
   }, [touchInteractionMode]);
+
+  useEffect(() => {
+    if (gammaEditorOpen) {
+      const gamma = imageAdjustmentsRef.current.gamma;
+      const config = IMAGE_ADJUSTMENT_CONFIG.gamma;
+      const displacement = gamma >= config.neutral
+        ? (gamma - config.neutral) / (config.max - config.neutral)
+        : (gamma - config.neutral) / (config.neutral - config.min);
+      setGammaPointer({ x: 100 + displacement * 100, y: 100 });
+    }
+  }, [gammaEditorOpen]);
+
+  useEffect(() => {
+    if (levelsEditorOpen) {
+      const current = imageAdjustmentsRef.current;
+      setLevelsPointer({
+        x: 100 + ((current.levelsBlack ?? 0) / 127) * 100,
+        y: 100 + ((255 - (current.levelsWhite ?? 255)) / 127) * 100,
+      });
+    }
+  }, [levelsEditorOpen]);
 
   useLayoutEffect(() => {
     const node = previewMeasureRef.current;
@@ -459,6 +505,38 @@ function PreviewPanel({
     onPerspectiveChange?.(Math.round(clamp(value, config.min, config.max) / config.step) * config.step);
   }
 
+  function updateSaturationVibranceFromPointer(e: PointerEvent<SVGSVGElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const saturation = clamp(Math.round(((e.clientX - rect.left) / rect.width) * 200), 0, 200);
+    const vibrance = clamp(Math.round((1 - (e.clientY - rect.top) / rect.height) * 200 - 100), -100, 100);
+    onSaturationVibranceChange?.(saturation, vibrance);
+  }
+
+  function updateLevelsFromPointer(e: PointerEvent<SVGSVGElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = clamp(((e.clientX - rect.left) / rect.width) * 200, 0, 200);
+    const y = clamp(((e.clientY - rect.top) / rect.height) * 200, 0, 200);
+    setLevelsPointer({ x, y });
+    const black = Math.round((Math.abs(x - 100) / 100) * 127);
+    const white = Math.round(255 - (Math.abs(y - 100) / 100) * 127);
+    onLevelsChange?.(black, white);
+  }
+
+  function updateGammaFromPointer(e: PointerEvent<SVGSVGElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = clamp(((e.clientX - rect.left) / rect.width) * 200, 0, 200);
+    const y = clamp(((e.clientY - rect.top) / rect.height) * 200, 0, 200);
+    setGammaPointer({ x, y });
+    const horizontal = (x - 100) / 100;
+    const vertical = (100 - y) / 100;
+    const displacement = Math.abs(horizontal) >= Math.abs(vertical) ? horizontal : vertical;
+    const config = IMAGE_ADJUSTMENT_CONFIG.gamma;
+    const gamma = displacement >= 0
+      ? config.neutral + displacement * (config.max - config.neutral)
+      : config.neutral + displacement * (config.neutral - config.min);
+    onGammaChange?.(Math.round(gamma / config.step) * config.step);
+  }
+
   const curvePath = Array.from({ length: 65 }, (_, index) => {
     const input = (index / 64) * 255;
     const output = evaluateToneCurve(imageAdjustments.curveInput ?? 128, imageAdjustments.curveOutput ?? 128, input);
@@ -629,7 +707,7 @@ function PreviewPanel({
                   }}
                 />
 
-                {!curveEditorOpen && !brightnessContrastEditorOpen && !shadowsHighlightsEditorOpen && !perspectiveEditorOpen && <SvgGridLayer
+                {!curveEditorOpen && !brightnessContrastEditorOpen && !shadowsHighlightsEditorOpen && !perspectiveEditorOpen && !saturationVibranceEditorOpen && !levelsEditorOpen && !gammaEditorOpen && <SvgGridLayer
                   printedWidthIn={printedWidthIn}
                   printedHeightIn={printedHeightIn}
                   gridMode={gridMode}
@@ -642,7 +720,7 @@ function PreviewPanel({
                   gridLineThickness={gridLineThickness}
                 />}
 
-                {!curveEditorOpen && !brightnessContrastEditorOpen && !shadowsHighlightsEditorOpen && !perspectiveEditorOpen && <div
+                {!curveEditorOpen && !brightnessContrastEditorOpen && !shadowsHighlightsEditorOpen && !perspectiveEditorOpen && !saturationVibranceEditorOpen && !levelsEditorOpen && !gammaEditorOpen && <div
                   id="page-slice-overlay"
                   style={{
                     position: "absolute",
@@ -824,6 +902,26 @@ function PreviewPanel({
                   transform: "translate(-50%, -50%)",
                   pointerEvents: "none",
                 }} />}
+                {saturationVibranceEditorOpen && <svg viewBox="0 0 200 200" preserveAspectRatio="none" aria-label="Saturation and vibrance editor" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); updateSaturationVibranceFromPointer(event); }} onPointerMove={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) updateSaturationVibranceFromPointer(event); }} onPointerUp={(event) => { event.stopPropagation(); if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); onSaturationVibranceCommit?.(); }} onPointerCancel={onSaturationVibranceCommit} style={{ position: "absolute", inset: 0, zIndex: 6, width: "100%", height: "100%", background: "transparent", touchAction: "none", cursor: "crosshair" }}>
+                  <line x1="100" y1="0" x2="100" y2="200" stroke="white" strokeOpacity="0.75" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <line x1="0" y1="100" x2="200" y2="100" stroke="white" strokeOpacity="0.75" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <line x1="100" y1="100" x2={imageAdjustments.saturation} y2={100 - (imageAdjustments.vibrance ?? 0)} stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                </svg>}
+                {saturationVibranceEditorOpen && <span aria-hidden="true" style={{ position: "absolute", zIndex: 7, left: `${imageAdjustments.saturation / 2}%`, top: `${(100 - (imageAdjustments.vibrance ?? 0)) / 2}%`, width: "4px", height: "4px", boxSizing: "border-box", border: "1px solid black", borderRadius: "50%", background: "white", transform: "translate(-50%, -50%)", pointerEvents: "none" }} />}
+
+                {levelsEditorOpen && <svg viewBox="0 0 200 200" preserveAspectRatio="none" aria-label="Black and white levels editor" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); updateLevelsFromPointer(event); }} onPointerMove={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) updateLevelsFromPointer(event); }} onPointerUp={(event) => { event.stopPropagation(); if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); onLevelsCommit?.(); }} onPointerCancel={onLevelsCommit} style={{ position: "absolute", inset: 0, zIndex: 6, width: "100%", height: "100%", background: "transparent", touchAction: "none", cursor: "crosshair" }}>
+                  <line x1="100" y1="0" x2="100" y2="200" stroke="white" strokeOpacity="0.75" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <line x1="0" y1="100" x2="200" y2="100" stroke="white" strokeOpacity="0.75" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <line x1="100" y1="100" x2={levelsPointer.x} y2={levelsPointer.y} stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                </svg>}
+                {levelsEditorOpen && <span aria-hidden="true" style={{ position: "absolute", zIndex: 7, left: `${levelsPointer.x / 2}%`, top: `${levelsPointer.y / 2}%`, width: "4px", height: "4px", boxSizing: "border-box", border: "1px solid black", borderRadius: "50%", background: "white", transform: "translate(-50%, -50%)", pointerEvents: "none" }} />}
+
+                {gammaEditorOpen && <svg viewBox="0 0 200 200" preserveAspectRatio="none" aria-label="Gamma editor" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); updateGammaFromPointer(event); }} onPointerMove={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) updateGammaFromPointer(event); }} onPointerUp={(event) => { event.stopPropagation(); if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); onGammaCommit?.(); }} onPointerCancel={onGammaCommit} style={{ position: "absolute", inset: 0, zIndex: 6, width: "100%", height: "100%", background: "transparent", touchAction: "none", cursor: "crosshair" }}>
+                  <line x1="100" y1="0" x2="100" y2="200" stroke="white" strokeOpacity="0.75" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <line x1="0" y1="100" x2="200" y2="100" stroke="white" strokeOpacity="0.75" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <line x1="100" y1="100" x2={gammaPointer.x} y2={gammaPointer.y} stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                </svg>}
+                {gammaEditorOpen && <span aria-hidden="true" style={{ position: "absolute", zIndex: 7, left: `${gammaPointer.x / 2}%`, top: `${gammaPointer.y / 2}%`, width: "4px", height: "4px", boxSizing: "border-box", border: "1px solid black", borderRadius: "50%", background: "white", transform: "translate(-50%, -50%)", pointerEvents: "none" }} />}
               </div>
             ) : (
               <div

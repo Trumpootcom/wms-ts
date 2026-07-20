@@ -86,6 +86,63 @@ function buildToneCurveLookup(input: number, output: number): Uint8ClampedArray 
   return lookup;
 }
 
+function srgbToLinear(value: number): number {
+  const channel = value / 255;
+  return channel <= 0.04045 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
+}
+
+function linearToSrgb(value: number): number {
+  const channel = Math.min(Math.max(value, 0), 1);
+  return 255 * (channel <= 0.0031308 ? channel * 12.92 : 1.055 * Math.pow(channel, 1 / 2.4) - 0.055);
+}
+
+function linearRgbToOklab(r: number, g: number, b: number) {
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return {
+    l: 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+    a: 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+    b: 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+  };
+}
+
+function oklabToLinearRgb(l: number, a: number, b: number) {
+  const lRoot = l + 0.3963377774 * a + 0.2158037573 * b;
+  const mRoot = l - 0.1055613458 * a - 0.0638541728 * b;
+  const sRoot = l - 0.0894841775 * a - 1.291485548 * b;
+  const ll = lRoot * lRoot * lRoot;
+  const mm = mRoot * mRoot * mRoot;
+  const ss = sRoot * sRoot * sRoot;
+  return {
+    r: 4.0767416621 * ll - 3.3077115913 * mm + 0.2309699292 * ss,
+    g: -1.2684380046 * ll + 2.6097574011 * mm - 0.3413193965 * ss,
+    b: -0.0041960863 * ll - 0.7034186147 * mm + 1.707614701 * ss,
+  };
+}
+
+function gamutMappedOklabToLinearRgb(l: number, a: number, b: number) {
+  const isInGamut = (rgb: { r: number; g: number; b: number }) =>
+    rgb.r >= 0 && rgb.r <= 1 && rgb.g >= 0 && rgb.g <= 1 && rgb.b >= 0 && rgb.b <= 1;
+  const direct = oklabToLinearRgb(l, a, b);
+  if (isInGamut(direct)) return direct;
+
+  let low = 0;
+  let high = 1;
+  let best = oklabToLinearRgb(l, 0, 0);
+  for (let iteration = 0; iteration < 7; iteration += 1) {
+    const scale = (low + high) / 2;
+    const candidate = oklabToLinearRgb(l, a * scale, b * scale);
+    if (isInGamut(candidate)) {
+      low = scale;
+      best = candidate;
+    } else {
+      high = scale;
+    }
+  }
+  return best;
+}
+
 export function applyImageAdjustmentsToImageData(
   imageData: ImageData,
   adjustments: ImageAdjustments,
@@ -96,6 +153,7 @@ export function applyImageAdjustmentsToImageData(
   const exposureFactor = Math.pow(2, adjustments.exposure ?? 0);
   const contrastFactor = adjustments.contrast / 100;
   const saturationFactor = adjustments.saturation / 100;
+  const vibrance = Math.min(Math.max(adjustments.vibrance ?? 0, -100), 100) / 100;
   const gammaFactor = adjustments.gamma > 0 ? adjustments.gamma : 1;
   const shadowLift = Math.min(Math.max(adjustments.shadowLift ?? 0, 0), 100);
   const shadowInput = 64;
@@ -107,44 +165,37 @@ export function applyImageAdjustmentsToImageData(
   );
   const shadows = Math.min(Math.max(adjustments.shadows ?? IMAGE_ADJUSTMENT_CONFIG.shadows.neutral, IMAGE_ADJUSTMENT_CONFIG.shadows.min), IMAGE_ADJUSTMENT_CONFIG.shadows.max);
   const highlights = Math.min(Math.max(adjustments.highlights ?? IMAGE_ADJUSTMENT_CONFIG.highlights.neutral, IMAGE_ADJUSTMENT_CONFIG.highlights.min), IMAGE_ADJUSTMENT_CONFIG.highlights.max);
+  const levelsBlack = Math.min(Math.max(adjustments.levelsBlack ?? 0, 0), 127);
+  const levelsWhite = Math.min(Math.max(adjustments.levelsWhite ?? 255, 128), 255);
 
   for (let i = 0; i < data.length; i += 4) {
-    let r = data[i];
-    let g = data[i + 1];
-    let b = data[i + 2];
+    const lightFactor = brightnessFactor * exposureFactor;
+    const lab = linearRgbToOklab(
+      srgbToLinear(data[i]) * lightFactor,
+      srgbToLinear(data[i + 1]) * lightFactor,
+      srgbToLinear(data[i + 2]) * lightFactor,
+    );
 
-    // Brightness
-    r *= brightnessFactor * exposureFactor;
-    g *= brightnessFactor * exposureFactor;
-    b *= brightnessFactor * exposureFactor;
+    let lightness = ((lab.l * 255 - levelsBlack) / (levelsWhite - levelsBlack));
+    lightness = (lightness - 0.5) * contrastFactor + 0.5;
+    lightness = Math.pow(Math.min(Math.max(lightness, 0), 1), 1 / gammaFactor);
+    lightness += (shadows * IMAGE_ADJUSTMENT_CONFIG.shadows.strength / 255) * Math.pow(1 - lightness, 2)
+      + (highlights * IMAGE_ADJUSTMENT_CONFIG.highlights.strength / 255) * Math.pow(lightness, 2);
+    lightness = toneCurveLookup[curveLookup[Math.round(clampByte(lightness * 255))]] / 255;
 
-    // Contrast
-    r = ((r / 255 - 0.5) * contrastFactor + 0.5) * 255;
-    g = ((g / 255 - 0.5) * contrastFactor + 0.5) * 255;
-    b = ((b / 255 - 0.5) * contrastFactor + 0.5) * 255;
+    const chroma = Math.hypot(lab.a, lab.b);
+    const normalizedChroma = Math.min(chroma / 0.4, 1);
+    const vibranceFactor = vibrance >= 0 ? 1 + vibrance * (1 - normalizedChroma) : 1 + vibrance;
+    const chromaFactor = saturationFactor * vibranceFactor;
+    const rgb = gamutMappedOklabToLinearRgb(
+      Math.min(Math.max(lightness, 0), 1),
+      lab.a * chromaFactor,
+      lab.b * chromaFactor,
+    );
 
-    // Saturation
-    const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    r = gray + (r - gray) * saturationFactor;
-    g = gray + (g - gray) * saturationFactor;
-    b = gray + (b - gray) * saturationFactor;
-
-    // Gamma
-    r = 255 * Math.pow(clampByte(r) / 255, 1 / gammaFactor);
-    g = 255 * Math.pow(clampByte(g) / 255, 1 / gammaFactor);
-    b = 255 * Math.pow(clampByte(b) / 255, 1 / gammaFactor);
-
-    // Tonal-range adjustments preserve the opposite end of the histogram.
-    const luminance = clampByte(0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-    const tonalOffset = shadows * IMAGE_ADJUSTMENT_CONFIG.shadows.strength * Math.pow(1 - luminance, 2)
-      + highlights * IMAGE_ADJUSTMENT_CONFIG.highlights.strength * Math.pow(luminance, 2);
-    r += tonalOffset;
-    g += tonalOffset;
-    b += tonalOffset;
-
-    data[i] = toneCurveLookup[curveLookup[Math.round(clampByte(r))]];
-    data[i + 1] = toneCurveLookup[curveLookup[Math.round(clampByte(g))]];
-    data[i + 2] = toneCurveLookup[curveLookup[Math.round(clampByte(b))]];
+    data[i] = linearToSrgb(rgb.r);
+    data[i + 1] = linearToSrgb(rgb.g);
+    data[i + 2] = linearToSrgb(rgb.b);
   }
 }
 

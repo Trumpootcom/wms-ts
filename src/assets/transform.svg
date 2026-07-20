@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   version="1.1"
+   id="svg1"
+   width="9.6000004"
+   height="9.6000004"
+   viewBox="0 0 9.6000004 9.6000004"
+   sodipodi:docname="dither.png"
+   inkscape:export-filename="..\Documents\ProjectsGit\Apps\vtt_slicer\src\assets\tone.svg"
+   inkscape:export-xdpi="37.5"
+   inkscape:export-ydpi="37.5"
+   xml:space="preserve"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+     id="defs1" /><sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"><inkscape:page
+       x="0"
+       y="0"
+       width="9.6000004"
+       height="9.6000004"
+       id="page2"
+       margin="0"
+       bleed="0" /></sodipodi:namedview><g
+     inkscape:groupmode="layer"
+     inkscape:label="Image"
+     id="g1"
+     transform="translate(-22.998137,-21.505528)"><image
+       width="9.6000004"
+       height="9.6000004"
+       preserveAspectRatio="none"
+       xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAAAXNSR0IB2cksfwAAAARnQU1BAACx&#10;jwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAlwSFlz&#10;AAAuIwAALiMBeKU/dgAAAAd0SU1FB+oHFAIBHBjON/wAAACJSURBVEjH7VZJCsAgEDPF/385vRfU&#10;zFItZXITdGJmb62wCXicKd5bYWnnOqW4Gz1i9eRI+VIxA6Kmby9BKYOksCr2klMJFaIu8+YHMuLl&#10;sduTDcofPFbHRVzE/yO21jGziD/TMjmZp572ioHdaYw9pPJUU3Yu7xbCyM6Ft/Kni79GdvYfq+PC&#10;NtzE2RgyrAXXqwAAAABJRU5ErkJggg==&#10;"
+       id="image1"
+       x="22.998137"
+       y="21.505527"
+       inkscape:export-filename="..\Documents\ProjectsGit\Apps\vtt_slicer\src\assets\transform.svg"
+       inkscape:export-xdpi="37.5"
+       inkscape:export-ydpi="37.5" /></g></svg>

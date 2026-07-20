@@ -6,7 +6,7 @@ import titlebarFill from "./assets/trumpoot_titlebar_b.png";
 import { buildInfo } from "./buildInfo.ts";
 import { theme } from "./theme.ts";
 
-const titlebarHeightPx = 40;
+const titlebarHeightPx = 45;
 const titlebarLeftAspectRatio = 171 / 98;
 const titlebarLeftWidthPx = titlebarHeightPx * titlebarLeftAspectRatio;
 

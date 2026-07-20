@@ -22,7 +22,7 @@ import {
   type LocalProjectSummary,
 } from "../slicer/projectStore.ts";
 import { createProjectThumbnail } from "../slicer/projectThumbnail.ts";
-import { prepareMobileImage } from "../slicer/mobileImageImport.ts";
+import { prepareImageForPage } from "../slicer/mobileImageImport.ts";
 import {
   DEFAULT_HEIGHT_IN,
   DEFAULT_WIDTH_IN,
@@ -44,14 +44,17 @@ const DEFAULT_IMAGE_ADJUSTMENTS: ImageAdjustments = {
   brightness: IMAGE_ADJUSTMENT_CONFIG.brightness.neutral,
   exposure: IMAGE_ADJUSTMENT_CONFIG.exposure.neutral,
   contrast: IMAGE_ADJUSTMENT_CONFIG.contrast.neutral,
-  saturation: 100,
-  gamma: 1,
+  saturation: IMAGE_ADJUSTMENT_CONFIG.saturation.neutral,
+  vibrance: IMAGE_ADJUSTMENT_CONFIG.vibrance.neutral,
+  gamma: IMAGE_ADJUSTMENT_CONFIG.gamma.neutral,
   shadowLift: 0,
   shadows: IMAGE_ADJUSTMENT_CONFIG.shadows.neutral,
   highlights: IMAGE_ADJUSTMENT_CONFIG.highlights.neutral,
   curveInput: IMAGE_ADJUSTMENT_CONFIG.curve.neutralInput,
   curveOutput: IMAGE_ADJUSTMENT_CONFIG.curve.neutralOutput,
   perspective: IMAGE_ADJUSTMENT_CONFIG.perspective.neutral,
+  levelsBlack: IMAGE_ADJUSTMENT_CONFIG.levels.neutralBlack,
+  levelsWhite: IMAGE_ADJUSTMENT_CONFIG.levels.neutralWhite,
 };
 
 function normalizeImageAdjustments(
@@ -119,7 +122,11 @@ export function useSlicerState() {
     if (!file) return;
 
     try {
-      const prepared = await prepareMobileImage(file);
+      const prepared = await prepareImageForPage(
+        file,
+        printedWidthIn,
+        printedHeightIn,
+      );
       const url = URL.createObjectURL(prepared.blob);
 
       setSourcePixelWidth(prepared.width);
@@ -148,10 +155,66 @@ export function useSlicerState() {
         setPrintedHeightIn(adjustedHeight);
         setPrintedWidthIn(adjustedWidth);
       }
-      setExportMessage(prepared.rotated ? "Landscape image rotated to portrait." : "Image loaded.");
+      setExportMessage(prepared.rotated ? "Image rotated to best fit the page." : "Image loaded.");
     } catch (error) {
       console.error(error);
       setExportMessage("Image load failed.");
+    }
+  }
+
+  async function handleRotateImage90() {
+    if (!imageBlob) return;
+
+    try {
+      const sourceUrl = URL.createObjectURL(imageBlob);
+      const image = new Image();
+
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error("Could not load the image for rotation."));
+        image.src = sourceUrl;
+      });
+      URL.revokeObjectURL(sourceUrl);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalHeight;
+      canvas.height = image.naturalWidth;
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("This browser cannot rotate the image.");
+
+      context.translate(canvas.width, 0);
+      context.rotate(Math.PI / 2);
+      context.drawImage(image, 0, 0);
+
+      const outputType = ["image/jpeg", "image/png", "image/webp"].includes(imageBlob.type)
+        ? imageBlob.type
+        : "image/png";
+      const rotatedBlob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (blob) => blob ? resolve(blob) : reject(new Error("Could not create the rotated image.")),
+          outputType,
+          0.92,
+        );
+      });
+      const rotatedUrl = URL.createObjectURL(rotatedBlob);
+
+      setImageUrl((currentUrl) => {
+        if (currentUrl?.startsWith("blob:")) URL.revokeObjectURL(currentUrl);
+        return rotatedUrl;
+      });
+      setImageBlob(rotatedBlob);
+      setSourcePixelWidth(canvas.width);
+      setSourcePixelHeight(canvas.height);
+      setImageAspectRatio(canvas.width / canvas.height);
+      setPrintedWidthIn(printedHeightIn);
+      setPrintedHeightIn(printedWidthIn);
+      setImageZoom(100);
+      setImageOffsetX(0);
+      setImageOffsetY(0);
+      setExportMessage("Image rotated 90° clockwise.");
+    } catch (error) {
+      console.error(error);
+      setExportMessage("Image rotation failed.");
     }
   }
 
@@ -528,6 +591,18 @@ export function useSlicerState() {
   function setImagePerspective(perspective: number) {
     setImageAdjustments((prev) => ({ ...prev, perspective }));
   }
+
+  function setSaturationVibrance(saturation: number, vibrance: number) {
+    setImageAdjustments((prev) => ({ ...prev, saturation, vibrance }));
+  }
+
+  function setImageLevels(levelsBlack: number, levelsWhite: number) {
+    setImageAdjustments((prev) => ({ ...prev, levelsBlack, levelsWhite }));
+  }
+
+  function setImageGamma(gamma: number) {
+    setImageAdjustments((prev) => ({ ...prev, gamma }));
+  }
   return {
     imageUrl,
     imageBlob,
@@ -582,6 +657,7 @@ export function useSlicerState() {
     setImageOffsetY,
 
     handleFileUpload,
+    handleRotateImage90,
     handleSaveProject,
     handleExportProject,
     handleOpenProject,
@@ -600,6 +676,9 @@ export function useSlicerState() {
     setExposureContrast,
     setShadowsHighlights,
     setImagePerspective,
+    setSaturationVibrance,
+    setImageLevels,
+    setImageGamma,
 
     exportDpi: EXPORT_DPI,
   };
