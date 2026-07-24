@@ -138,6 +138,9 @@ body {
   width: 36px !important;
   height: 36px !important;
   min-width: 36px !important;
+  max-width: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
   padding: 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -145,13 +148,19 @@ body {
   box-shadow: none !important;
   backdrop-filter: none !important;
   color: hsl(42 35% 16%) !important;
+  overflow: hidden !important;
 }
 
 .titlebar-floating-menu button img,
 .titlebar-floating-menu button svg {
+  display: block !important;
+  flex: 0 0 36px !important;
   width: 36px !important;
   height: 36px !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
   object-fit: contain;
+  overflow: hidden;
 }
 .titlebar-floating-menu button img.shadows-highlights-icon {
   width: 32px !important;
