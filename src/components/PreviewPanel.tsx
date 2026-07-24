@@ -15,6 +15,11 @@ import { getTileConfig } from "../slicer/math.ts";
 import { getGridBasis, invert2x2 } from "../slicer/latticeMath.ts";
 import { theme } from "../theme.ts";
 import { IMAGE_ADJUSTMENT_CONFIG } from "../slicer/imageAdjustmentConfig.ts";
+import {
+  snapLinear,
+  snapPeriodic,
+  VECTOR_CONTROL_CONFIG,
+} from "../slicer/vectorControlConfig.ts";
 import SvgGridLayer from "./ui/SvgGridLayer";
 
 type SourceSizeReport = {
@@ -77,6 +82,21 @@ type PreviewPanelProps = {
   gammaEditorOpen?: boolean;
   onGammaChange?: (gamma: number) => void;
   onGammaCommit?: () => void;
+  gridRotationEditorOpen?: boolean;
+  onGridRotationChange?: (rotation: number) => void;
+  onGridRotationCommit?: () => void;
+  gridColorEditorOpen?: boolean;
+  onGridColorChange?: (color: GridColor, hue: number, lightness: number) => void;
+  onGridColorCommit?: () => void;
+  gridThicknessEditorOpen?: boolean;
+  onGridThicknessChange?: (thickness: number) => void;
+  onGridThicknessCommit?: () => void;
+  gridScaleEditorOpen?: boolean;
+  onGridScaleChange?: (scale: GridSize) => void;
+  onGridScaleCommit?: () => void;
+  gridIsoEditorOpen?: boolean;
+  onGridIsoChange?: (angle: number) => void;
+  onGridIsoCommit?: () => void;
 };
 
 type DragStart = {
@@ -103,6 +123,19 @@ function clamp(value: number, min: number, max: number): number {
 
 function roundToTenth(value: number): number {
   return Math.round(value * 10) / 10;
+}
+
+function gridScaleFromMagnitude(magnitude: number): GridSize {
+  const config = VECTOR_CONTROL_CONFIG.gridScale;
+  const rawScale = clamp(
+    magnitude * config.magnitudeMultiplier,
+    config.min,
+    config.max,
+  );
+  const scale = rawScale <= config.analogStart
+    ? snapLinear(rawScale, config.targets)
+    : roundToTenth(rawScale);
+  return scale as GridSize;
 }
 
 function PreviewPanel({
@@ -155,6 +188,21 @@ function PreviewPanel({
   gammaEditorOpen = false,
   onGammaChange,
   onGammaCommit,
+  gridRotationEditorOpen = false,
+  onGridRotationChange,
+  onGridRotationCommit,
+  gridColorEditorOpen = false,
+  onGridColorChange,
+  onGridColorCommit,
+  gridThicknessEditorOpen = false,
+  onGridThicknessChange,
+  onGridThicknessCommit,
+  gridScaleEditorOpen = false,
+  onGridScaleChange,
+  onGridScaleCommit,
+  gridIsoEditorOpen = false,
+  onGridIsoChange,
+  onGridIsoCommit,
 }: PreviewPanelProps) {
   const previewPaddingPx = 5;
   const previewBorderPx = 1;
@@ -171,6 +219,15 @@ function PreviewPanel({
   const [sourceImage, setSourceImage] = useState<HTMLImageElement | null>(null);
   const [gammaPointer, setGammaPointer] = useState({ x: 100, y: 100 });
   const [levelsPointer, setLevelsPointer] = useState({ x: 100, y: 100 });
+  const [gridRotationPointer, setGridRotationPointer] = useState<{ x: number; y: number } | null>(null);
+  const gridRotationDragRef = useRef<{ startAngle: number; startRotation: number } | null>(null);
+  const [gridColorPointer, setGridColorPointer] = useState<{ x: number; y: number } | null>(null);
+  const [gridThicknessPointer, setGridThicknessPointer] = useState({ x: 100, y: 100 });
+  const gridThicknessWasOpenRef = useRef(false);
+  const [gridScalePointer, setGridScalePointer] = useState({ x: 100, y: 100 });
+  const gridScaleWasOpenRef = useRef(false);
+  const [gridIsoPointer, setGridIsoPointer] = useState({ x: 100, y: 100 });
+  const gridIsoWasOpenRef = useRef(false);
   const imageAdjustmentsRef = useRef(imageAdjustments);
 
   useEffect(() => {
@@ -180,6 +237,42 @@ function PreviewPanel({
   useEffect(() => {
     setTouchMode(touchInteractionMode);
   }, [touchInteractionMode]);
+
+  useEffect(() => {
+    if (gridRotationEditorOpen) setGridRotationPointer(null);
+  }, [gridRotationEditorOpen]);
+
+  useEffect(() => {
+    if (gridColorEditorOpen) setGridColorPointer(null);
+  }, [gridColorEditorOpen]);
+
+  useEffect(() => {
+    if (gridThicknessEditorOpen && !gridThicknessWasOpenRef.current) {
+      const displacement = clamp((gridLineThickness ?? 1) - 1, 0, 9) / 9;
+      setGridThicknessPointer({ x: 100 + displacement * 100, y: 100 });
+    }
+    gridThicknessWasOpenRef.current = gridThicknessEditorOpen;
+  }, [gridThicknessEditorOpen, gridLineThickness]);
+
+  useEffect(() => {
+    if (gridScaleEditorOpen && !gridScaleWasOpenRef.current) {
+      const scale = clamp(gridSizeIn, 0.5, 2);
+      const magnitude = scale === 0.5 ? 0.25 : scale === 0.75 ? 0.375 : scale / 2;
+      const angle = gridRotation * Math.PI / 180;
+      setGridScalePointer({
+        x: 100 + Math.cos(angle) * magnitude * 100,
+        y: 100 + Math.sin(angle) * magnitude * 100,
+      });
+    }
+    gridScaleWasOpenRef.current = gridScaleEditorOpen;
+  }, [gridScaleEditorOpen, gridSizeIn, gridRotation]);
+
+  useEffect(() => {
+    if (gridIsoEditorOpen && !gridIsoWasOpenRef.current) {
+      setGridIsoPointer({ x: 100, y: 100 });
+    }
+    gridIsoWasOpenRef.current = gridIsoEditorOpen;
+  }, [gridIsoEditorOpen]);
 
   useEffect(() => {
     if (gammaEditorOpen) {
@@ -344,15 +437,16 @@ function PreviewPanel({
 
     if (touchMode === "grid") {
       const gridStep = e.deltaY < 0 ? 0.1 : -0.1;
-      setGridSizeIn(roundToTenth(clamp(gridSizeIn + gridStep, 0.5, 1.5)));
+      setGridSizeIn(roundToTenth(clamp(gridSizeIn + gridStep, 0.5, 2)));
       return;
     }
 
     if (!imageUrl) return;
 
-    const zoomStepSize = e.shiftKey ? 5 : 1;
+    const zoomConfig = IMAGE_ADJUSTMENT_CONFIG.zoom;
+    const zoomStepSize = e.shiftKey ? zoomConfig.fastWheelStep : zoomConfig.wheelStep;
     const zoomStep = e.deltaY < 0 ? zoomStepSize : -zoomStepSize;
-    setImageZoom(clamp(imageZoom + zoomStep, 100, 200));
+    setImageZoom(clamp(imageZoom + zoomStep, zoomConfig.min, zoomConfig.max));
   }
 
   function handleImagePointerDown(e: PointerEvent<HTMLDivElement>) {
@@ -402,11 +496,16 @@ function PreviewPanel({
       const scale = distance / pinchStart.distance;
       if (pinchStart.mode === "grid") {
         setGridSizeIn(
-          (Math.round(clamp(pinchStart.gridSizeIn * scale, 0.5, 1.5) * 100) /
+          (Math.round(clamp(pinchStart.gridSizeIn * scale, 0.5, 2) * 100) /
             100) as GridSize,
         );
       } else if (imageUrl) {
-        setImageZoom(clamp(Math.round(pinchStart.imageZoom * scale * 10) / 10, 100, 200));
+        const zoomConfig = IMAGE_ADJUSTMENT_CONFIG.zoom;
+        setImageZoom(clamp(
+          Math.round((pinchStart.imageZoom * scale) / zoomConfig.step) * zoomConfig.step,
+          zoomConfig.min,
+          zoomConfig.max,
+        ));
       }
       return;
     }
@@ -419,6 +518,7 @@ function PreviewPanel({
     const deltaY = e.clientY - dragStart.y;
 
     if (dragStart.mode === "grid") {
+      if (gridSizeIn <= 0) return;
       const deltaPaperX = (deltaX / frameWidthPx) * printedWidthIn;
       const deltaPaperY = (deltaY / frameHeightPx) * printedHeightIn;
       const basis = getGridBasis(
@@ -535,6 +635,92 @@ function PreviewPanel({
       ? config.neutral + displacement * (config.max - config.neutral)
       : config.neutral + displacement * (config.neutral - config.min);
     onGammaChange?.(Math.round(gamma / config.step) * config.step);
+  }
+
+  function pointerAngle(e: PointerEvent<SVGSVGElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return Math.atan2(
+      e.clientY - (rect.top + rect.height / 2),
+      e.clientX - (rect.left + rect.width / 2),
+    ) * 180 / Math.PI;
+  }
+
+  function updateGridRotationPointer(e: PointerEvent<SVGSVGElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setGridRotationPointer({
+      x: clamp(((e.clientX - rect.left) / rect.width) * 200, 0, 200),
+      y: clamp(((e.clientY - rect.top) / rect.height) * 200, 0, 200),
+    });
+  }
+
+  function updateGridRotationFromPointer(e: PointerEvent<SVGSVGElement>) {
+    const drag = gridRotationDragRef.current;
+    if (!drag) return;
+    updateGridRotationPointer(e);
+    let delta = pointerAngle(e) - drag.startAngle;
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
+    const rotation = clamp(drag.startRotation + delta * 2, -90, 90);
+    onGridRotationChange?.(roundToTenth(snapPeriodic(rotation, VECTOR_CONTROL_CONFIG.gridRotation)));
+  }
+
+  function updateGridColorFromPointer(e: PointerEvent<SVGSVGElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = clamp(((e.clientX - rect.left) / rect.width) * 200, 0, 200);
+    const y = clamp(((e.clientY - rect.top) / rect.height) * 200, 0, 200);
+    const hue = Math.round((x / 200) * 360) % 360;
+    const lightness = Math.round((1 - y / 200) * 100);
+    setGridColorPointer({ x, y });
+    onGridColorChange?.(`hsl(${hue} 100% ${lightness}%)`, hue, lightness);
+  }
+
+  function updateGridThicknessFromPointer(e: PointerEvent<SVGSVGElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = clamp(((e.clientX - rect.left) / rect.width) * 200, 0, 200);
+    const y = clamp(((e.clientY - rect.top) / rect.height) * 200, 0, 200);
+    const displacement = Math.max(Math.abs(x - 100), Math.abs(y - 100)) / 100;
+    setGridThicknessPointer({ x, y });
+    onGridThicknessChange?.(roundToTenth(1 + displacement * 9));
+  }
+
+  function updateGridScaleFromPointer(e: PointerEvent<SVGSVGElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const dx = e.clientX - (rect.left + rect.width / 2);
+    const dy = e.clientY - (rect.top + rect.height / 2);
+    const maxRadius = Math.min(rect.width, rect.height) / 2;
+    const distance = Math.hypot(dx, dy);
+    const magnitude = clamp(distance / maxRadius, 0, 1);
+    const clipScale = distance > maxRadius ? maxRadius / distance : 1;
+    const x = 100 + (dx * clipScale / rect.width) * 200;
+    const y = 100 + (dy * clipScale / rect.height) * 200;
+    setGridScalePointer({ x, y });
+
+    onGridScaleChange?.(gridScaleFromMagnitude(magnitude));
+    if (magnitude > 0.01) {
+      const rotation = Math.atan2(dy, dx) * 180 / Math.PI;
+      onGridRotationChange?.(roundToTenth(snapPeriodic(rotation, VECTOR_CONTROL_CONFIG.gridRotation)));
+    }
+  }
+
+  function updateGridIsoFromPointer(e: PointerEvent<SVGSVGElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const dx = e.clientX - (rect.left + rect.width / 2);
+    const dy = e.clientY - (rect.top + rect.height / 2);
+    const maxRadius = Math.min(rect.width, rect.height) / 2;
+    const distance = Math.hypot(dx, dy);
+    const magnitude = clamp(distance / maxRadius, 0, 1);
+    const clipScale = distance > maxRadius ? maxRadius / distance : 1;
+    const x = 100 + (dx * clipScale / rect.width) * 200;
+    const y = 100 + (dy * clipScale / rect.height) * 200;
+    setGridIsoPointer({ x, y });
+
+    const skewProgress = magnitude <= 0.1 ? 0 : (magnitude - 0.1) / 0.9;
+    onGridIsoChange?.(roundToTenth(skewProgress * 65));
+    if (magnitude > 0.1) {
+      const rotation = Math.atan2(dy, dx) * 180 / Math.PI;
+      onGridRotationChange?.(roundToTenth(snapPeriodic(rotation, VECTOR_CONTROL_CONFIG.gridRotation)));
+    }
+
   }
 
   const curvePath = Array.from({ length: 65 }, (_, index) => {
@@ -922,6 +1108,56 @@ function PreviewPanel({
                   <line x1="100" y1="100" x2={gammaPointer.x} y2={gammaPointer.y} stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" />
                 </svg>}
                 {gammaEditorOpen && <span aria-hidden="true" style={{ position: "absolute", zIndex: 7, left: `${gammaPointer.x / 2}%`, top: `${gammaPointer.y / 2}%`, width: "4px", height: "4px", boxSizing: "border-box", border: "1px solid black", borderRadius: "50%", background: "white", transform: "translate(-50%, -50%)", pointerEvents: "none" }} />}
+
+                {gridRotationEditorOpen && <svg viewBox="0 0 200 200" preserveAspectRatio="none" aria-label="Grid rotation angular vector control" onPointerDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  gridRotationDragRef.current = { startAngle: pointerAngle(event), startRotation: gridRotation };
+                  updateGridRotationPointer(event);
+                }} onPointerMove={(event) => {
+                  if (event.currentTarget.hasPointerCapture(event.pointerId)) updateGridRotationFromPointer(event);
+                }} onPointerUp={(event) => {
+                  event.stopPropagation();
+                  if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+                  gridRotationDragRef.current = null;
+                  onGridRotationCommit?.();
+                }} onPointerCancel={() => { gridRotationDragRef.current = null; onGridRotationCommit?.(); }} style={{ position: "absolute", inset: 0, zIndex: 6, width: "100%", height: "100%", background: "transparent", touchAction: "none", cursor: "crosshair" }}>
+                  {gridRotationPointer && <line x1="100" y1="100" x2={gridRotationPointer.x} y2={gridRotationPointer.y} stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" />}
+                </svg>}
+                {gridRotationEditorOpen && gridRotationPointer && <span aria-hidden="true" style={{ position: "absolute", zIndex: 7, left: `${gridRotationPointer.x / 2}%`, top: `${gridRotationPointer.y / 2}%`, width: "4px", height: "4px", boxSizing: "border-box", border: "1px solid black", borderRadius: "50%", background: "white", transform: "translate(-50%, -50%)", pointerEvents: "none" }} />}
+
+                {gridColorEditorOpen && <svg viewBox="0 0 200 200" preserveAspectRatio="none" aria-label="Grid color vector control" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); updateGridColorFromPointer(event); }} onPointerMove={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) updateGridColorFromPointer(event); }} onPointerUp={(event) => { event.stopPropagation(); if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); onGridColorCommit?.(); }} onPointerCancel={onGridColorCommit} style={{ position: "absolute", inset: 0, zIndex: 8, width: "100%", height: "100%", background: "transparent", touchAction: "none", cursor: "crosshair" }}>
+                  <defs>
+                    <linearGradient id="light-grid-colors" x1="0" x2="1"><stop offset="0" stopColor="hsl(0 100% 78%)" /><stop offset="16.7%" stopColor="hsl(60 100% 78%)" /><stop offset="33.3%" stopColor="hsl(120 100% 78%)" /><stop offset="50%" stopColor="hsl(180 100% 78%)" /><stop offset="66.7%" stopColor="hsl(240 100% 78%)" /><stop offset="83.3%" stopColor="hsl(300 100% 78%)" /><stop offset="100%" stopColor="hsl(360 100% 78%)" /></linearGradient>
+                    <linearGradient id="dark-grid-colors" x1="0" x2="1"><stop offset="0" stopColor="hsl(0 100% 18%)" /><stop offset="16.7%" stopColor="hsl(60 100% 18%)" /><stop offset="33.3%" stopColor="hsl(120 100% 18%)" /><stop offset="50%" stopColor="hsl(180 100% 18%)" /><stop offset="66.7%" stopColor="hsl(240 100% 18%)" /><stop offset="83.3%" stopColor="hsl(300 100% 18%)" /><stop offset="100%" stopColor="hsl(360 100% 18%)" /></linearGradient>
+                  </defs>
+                  <rect x="0" y="0" width="200" height="10" fill="url(#light-grid-colors)" />
+                  <rect x="0" y="190" width="200" height="10" fill="url(#dark-grid-colors)" />
+                  {gridColorPointer && <line x1="100" y1="100" x2={gridColorPointer.x} y2={gridColorPointer.y} stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" />}
+                </svg>}
+                {gridColorEditorOpen && gridColorPointer && <span aria-hidden="true" style={{ position: "absolute", zIndex: 9, left: `${gridColorPointer.x / 2}%`, top: `${gridColorPointer.y / 2}%`, width: "4px", height: "4px", boxSizing: "border-box", border: "1px solid black", borderRadius: "50%", background: "white", transform: "translate(-50%, -50%)", pointerEvents: "none" }} />}
+
+                {gridThicknessEditorOpen && <svg viewBox="0 0 200 200" preserveAspectRatio="none" aria-label="Grid line thickness vector control" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); updateGridThicknessFromPointer(event); }} onPointerMove={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) updateGridThicknessFromPointer(event); }} onPointerUp={(event) => { event.stopPropagation(); if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); onGridThicknessCommit?.(); }} onPointerCancel={onGridThicknessCommit} style={{ position: "absolute", inset: 0, zIndex: 8, width: "100%", height: "100%", background: "transparent", touchAction: "none", cursor: "crosshair" }}>
+                  <line x1="100" y1="0" x2="100" y2="200" stroke="white" strokeOpacity="0.75" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <line x1="0" y1="100" x2="200" y2="100" stroke="white" strokeOpacity="0.75" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <line x1="100" y1="100" x2={gridThicknessPointer.x} y2={gridThicknessPointer.y} stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                </svg>}
+                {gridThicknessEditorOpen && <span aria-hidden="true" style={{ position: "absolute", zIndex: 9, left: `${gridThicknessPointer.x / 2}%`, top: `${gridThicknessPointer.y / 2}%`, width: "4px", height: "4px", boxSizing: "border-box", border: "1px solid black", borderRadius: "50%", background: "white", transform: "translate(-50%, -50%)", pointerEvents: "none" }} />}
+
+                {gridScaleEditorOpen && <svg viewBox="0 0 200 200" preserveAspectRatio="none" aria-label="Grid scale vector control" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); updateGridScaleFromPointer(event); }} onPointerMove={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) updateGridScaleFromPointer(event); }} onPointerUp={(event) => { event.stopPropagation(); if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); onGridScaleCommit?.(); }} onPointerCancel={onGridScaleCommit} style={{ position: "absolute", inset: 0, zIndex: 8, width: "100%", height: "100%", background: "transparent", touchAction: "none", cursor: "crosshair" }}>
+                  <line x1="100" y1="0" x2="100" y2="200" stroke="white" strokeOpacity="0.75" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <line x1="0" y1="100" x2="200" y2="100" stroke="white" strokeOpacity="0.75" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <line x1="100" y1="100" x2={gridScalePointer.x} y2={gridScalePointer.y} stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                </svg>}
+                {gridScaleEditorOpen && <span aria-hidden="true" style={{ position: "absolute", zIndex: 9, left: `${gridScalePointer.x / 2}%`, top: `${gridScalePointer.y / 2}%`, width: "4px", height: "4px", boxSizing: "border-box", border: "1px solid black", borderRadius: "50%", background: "white", transform: "translate(-50%, -50%)", pointerEvents: "none" }} />}
+
+                {gridIsoEditorOpen && <svg viewBox="0 0 200 200" preserveAspectRatio="none" aria-label="Iso grid angle vector control" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); updateGridIsoFromPointer(event); }} onPointerMove={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) updateGridIsoFromPointer(event); }} onPointerUp={(event) => { event.stopPropagation(); if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); onGridIsoCommit?.(); }} onPointerCancel={onGridIsoCommit} style={{ position: "absolute", inset: 0, zIndex: 8, width: "100%", height: "100%", background: "transparent", touchAction: "none", cursor: "crosshair" }}>
+                  <line x1="100" y1="0" x2="100" y2="200" stroke="white" strokeOpacity="0.75" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <line x1="0" y1="100" x2="200" y2="100" stroke="white" strokeOpacity="0.75" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+                  <line x1="100" y1="100" x2={gridIsoPointer.x} y2={gridIsoPointer.y} stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                </svg>}
+                {gridIsoEditorOpen && <span aria-hidden="true" style={{ position: "absolute", zIndex: 9, left: `${gridIsoPointer.x / 2}%`, top: `${gridIsoPointer.y / 2}%`, width: "4px", height: "4px", boxSizing: "border-box", border: "1px solid black", borderRadius: "50%", background: "white", transform: "translate(-50%, -50%)", pointerEvents: "none" }} />}
               </div>
             ) : (
               <div

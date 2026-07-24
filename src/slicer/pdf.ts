@@ -10,7 +10,7 @@ import type {
 } from "./types.ts";
 import { drawAdjustedSliceToCanvas } from "./imageAdjustments.ts";
 import type { ImageAdjustments } from "./types.ts";
-import { GRID_COLORS } from "./gridConstants.ts";
+import { resolveGridColor } from "./gridConstants.ts";
 import { getSlicePreset } from "./slicePresets.ts";
 
 export async function loadImage(src: string): Promise<HTMLImageElement> {
@@ -239,7 +239,7 @@ export async function exportSlicedPdf({
   });
 
   const margins = getPageMargins(sliceSize);
-  const exportGridLineColor = GRID_COLORS[gridColor] || "rgba(0,0,0,0.95)";
+  const exportGridLineColor = resolveGridColor(gridColor);
 
   const { lineSegments, circles } = buildGridPrimitives({
     printedWidthIn,
@@ -250,6 +250,7 @@ export async function exportSlicedPdf({
     gridSizeIn,
     gridPhaseX,
     gridPhaseY,
+    gridLineThickness,
     dashCount: 4,
   });
 

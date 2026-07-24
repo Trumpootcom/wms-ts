@@ -40,6 +40,7 @@ type BuildGridPrimitiveArgs = {
   gridSizeIn: number;
   gridPhaseX?: number;
   gridPhaseY?: number;
+  gridLineThickness?: number;
   dashCount?: number;
 };
 
@@ -87,8 +88,13 @@ export function buildGridPrimitives({
   gridSizeIn,
   gridPhaseX = 0,
   gridPhaseY = 0,
+  gridLineThickness = 1,
   dashCount = 4,
 }: BuildGridPrimitiveArgs): GridPrimitives {
+  if (gridMode === "none" || gridSizeIn <= 0) {
+    return { lineSegments: [], circles: [] };
+  }
+
   const pageRect: Rect = {
     x: 0,
     y: 0,
@@ -124,32 +130,11 @@ export function buildGridPrimitives({
     y: basis.v.y / vLen,
   };
 
-  if (gridMode === "none") {
-    return { lineSegments:[], circles: [] };
-    const radius = gridSizeIn / 2;
-
-    for (let i = bounds.iStart; i < bounds.iEnd; i += 1) {
-      for (let j = bounds.jStart; j < bounds.jEnd; j += 1) {
-        const center = latticeToPaper(i + 0.5, j + 0.5, basis);
-
-        if (!isPointInRect(center, pageRect)) {
-          continue;
-        }
-
-        circles.push({
-          cx: center.x,
-          cy: center.y,
-          r: radius,
-        });
-      }
-    }
-
-    return { lineSegments, circles };
-  }
-
   if (gridMode === "corner") {
-    const uHalfStub = uLen / 8;
-    const vHalfStub = vLen / 8;
+    const strokeWidthIn = 0.03 * gridLineThickness;
+    const minimumHalfStub = strokeWidthIn * 1.25;
+    const uHalfStub = Math.max(uLen / 8, minimumHalfStub);
+    const vHalfStub = Math.max(vLen / 8, minimumHalfStub);
 
     for (let i = bounds.iStart; i <= bounds.iEnd; i += 1) {
       for (let j = bounds.jStart; j <= bounds.jEnd; j += 1) {

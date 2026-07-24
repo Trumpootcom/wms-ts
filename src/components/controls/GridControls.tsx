@@ -22,10 +22,10 @@ export default function GridControls({ slicer }: SlicerControlsProps) {
         { value: "red", icon: <SvgIcon name="colorRed" size={20} />, title: "Red" },
         { value: "blue", icon: <SvgIcon name="colorBlue" size={20} />, title: "Blue" },
       ]} />
-      <NumberWithSlider label="Iso Angle" value={slicer.gridPerspectiveAngle} onChange={slicer.setGridPerspectiveAngle} min={0} max={45} defaultValue={0} stepInput={2.5} stepSlider={2.5} />
+      <NumberWithSlider label="Iso Skew" value={slicer.gridPerspectiveAngle} onChange={slicer.setGridPerspectiveAngle} min={0} max={65} defaultValue={0} stepInput={0.5} stepSlider={0.5} />
       <NumberWithSlider label="Rotation" value={slicer.gridRotation} onChange={slicer.setGridRotation} min={-90} max={90} defaultValue={0} stepInput={0.5} stepSlider={0.5} />
-      <NumberWithSlider label="Size" value={slicer.gridSizeIn} min={0.5} max={1.5} defaultValue={DEFAULT_GRID_SIZE_IN} stepInput={0.01} stepSlider={0.01} onChange={(value) => slicer.setGridSizeIn(value as GridSize)} />
-      <NumberWithSlider label="Stroke" value={slicer.gridLineThickness} min={1} max={5} defaultValue={1} stepSlider={0.1} stepInput={0.1} onChange={slicer.setGridLineThickness} />
+      <NumberWithSlider label="Size" value={slicer.gridSizeIn} min={0.5} max={2} defaultValue={DEFAULT_GRID_SIZE_IN} stepInput={0.01} stepSlider={0.01} onChange={(value) => slicer.setGridSizeIn(value as GridSize)} />
+      <NumberWithSlider label="Stroke" value={slicer.gridLineThickness} min={1} max={10} defaultValue={1} stepSlider={0.1} stepInput={0.1} onChange={slicer.setGridLineThickness} />
       <NumberWithSlider label="X Offset" value={slicer.gridPhaseX} min={-1} max={1} defaultValue={0} stepSlider={0.01} stepInput={0.01} onChange={slicer.setGridPhaseX} />
       <NumberWithSlider label="Y Offset" value={slicer.gridPhaseY} min={-1} max={1} defaultValue={0} stepSlider={0.01} stepInput={0.01} onChange={slicer.setGridPhaseY} />
     </PanelSection>

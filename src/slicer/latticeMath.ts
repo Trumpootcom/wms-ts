@@ -50,20 +50,6 @@ function rotateVector(vec: Vector, angleDeg: number): Vector {
   };
 }
 
-function rotatePoint(point: Point, center: Point, angleDeg: number): Point {
-  const translated = {
-    x: point.x - center.x,
-    y: point.y - center.y,
-  };
-
-  const rotated = rotateVector(translated, angleDeg);
-
-  return {
-    x: center.x + rotated.x,
-    y: center.y + rotated.y,
-  };
-}
-
 export function getConstructionRect(
   printedWidthIn: number,
   printedHeightIn: number,
@@ -90,39 +76,25 @@ export function getGridBasis(
     y: printedHeightIn / 2,
   };
 
-  let u0: Vector;
-  let v0: Vector;
-
-  if (gridPerspectiveAngle === 0) {
-    u0 = { x: gridSizeIn, y: 0 };
-    v0 = { x: 0, y: gridSizeIn };
-  } else {
-    const alpha = degToRad(gridPerspectiveAngle);
-
-    const sin2a = Math.sin(2 * alpha);
-    const sideLength =
-      Math.abs(sin2a) < EPSILON ? gridSizeIn : gridSizeIn / sin2a;
-
-    u0 = {
-      x: sideLength * Math.cos(alpha),
-      y: sideLength * Math.sin(alpha),
-    };
-
-    v0 = {
-      x: sideLength * Math.cos(alpha),
-      y: -sideLength * Math.sin(alpha),
-    };
-  }
+  const skew = Math.min(Math.max(gridPerspectiveAngle, 0), 65);
+  const intersectionAngle = degToRad(90 - skew);
+  const sideLength = gridSizeIn / Math.sin(intersectionAngle);
+  const u0: Vector = {
+    x: sideLength,
+    y: 0,
+  };
+  const v0: Vector = {
+    x: -sideLength * Math.cos(intersectionAngle),
+    y: sideLength * Math.sin(intersectionAngle),
+  };
 
   const u = rotateVector(u0, gridRotation);
   const v = rotateVector(v0, gridRotation);
 
-  const baseOrigin = rotatePoint({ x: 0, y: 0 }, center, gridRotation);
-
   return {
     origin: {
-      x: baseOrigin.x + gridPhaseX * u.x + gridPhaseY * v.x,
-      y: baseOrigin.y + gridPhaseX * u.y + gridPhaseY * v.y,
+      x: center.x + gridPhaseX * u.x + gridPhaseY * v.x,
+      y: center.y + gridPhaseX * u.y + gridPhaseY * v.y,
     },
     u,
     v,

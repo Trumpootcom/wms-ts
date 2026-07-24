@@ -1,4 +1,5 @@
 export const IMAGE_ADJUSTMENT_CONFIG = {
+  zoom: { neutral: 100, min: 100, max: 400, step: 0.1, wheelStep: 5, fastWheelStep: 100 },
   brightness: { neutral: 100, min: 0, max: 200 },
   exposure: { neutral: 0, min: -1.5, max: 1.5, step: 0.01 },
   contrast: { neutral: 100, min: 0, max: 200 },

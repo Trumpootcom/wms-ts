@@ -1,3 +1,5 @@
+import { IMAGE_ADJUSTMENT_CONFIG } from "./imageAdjustmentConfig.ts";
+
 export type ImageViewRect = {
   sourceX: number;
   sourceY: number;
@@ -10,7 +12,7 @@ type BuildImageViewRectArgs = {
   sourceImageHeight: number;
   printedWidthIn: number;
   printedHeightIn: number;
-  imageZoom: number;      // 100..200
+  imageZoom: number;      // IMAGE_ADJUSTMENT_CONFIG.zoom range
   imageOffsetX: number;   // -100..100
   imageOffsetY: number;   // -100..100
 };
@@ -44,7 +46,7 @@ export function buildImageViewRect({
     baseHeight = baseWidth / printedAspect;
   }
 
-  const zoomFactor = imageZoom / 100;
+  const zoomFactor = imageZoom / IMAGE_ADJUSTMENT_CONFIG.zoom.neutral;
 
   // Zooming in means we see a smaller source rect.
   const viewWidth = baseWidth / zoomFactor;

@@ -1,4 +1,4 @@
-export type GridColor = "black" | "white" | "gray" | "red" | "blue";
+export type GridColor = string;
 export type GridMode = "none" | "line" | "dash" | "corner" ;
 
 export type SliceSize = "8x10" | "8x10.5" | "ledger";

@@ -109,7 +109,9 @@ export function useSlicerState() {
     DEFAULT_IMAGE_ADJUSTMENTS,
   );
 
-  const [imageZoom, setImageZoom] = useState(100);
+  const [imageZoom, setImageZoom] = useState<number>(
+    IMAGE_ADJUSTMENT_CONFIG.zoom.neutral,
+  );
   const [imageOffsetX, setImageOffsetX] = useState(0);
   const [imageOffsetY, setImageOffsetY] = useState(0);
   const [gridLineThickness, setGridLineThickness] = useState<number>(1);
@@ -208,7 +210,7 @@ export function useSlicerState() {
       setImageAspectRatio(canvas.width / canvas.height);
       setPrintedWidthIn(printedHeightIn);
       setPrintedHeightIn(printedWidthIn);
-      setImageZoom(100);
+      setImageZoom(IMAGE_ADJUSTMENT_CONFIG.zoom.neutral);
       setImageOffsetX(0);
       setImageOffsetY(0);
       setExportMessage("Image rotated 90° clockwise.");

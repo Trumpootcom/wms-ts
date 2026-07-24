@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import type { useSlicerState } from "../../hooks/useSlicerState.ts";
 import type { GridSize } from "../../slicer/types.ts";
 import { DEFAULT_GRID_SIZE_IN, DEFAULT_HEIGHT_IN, DEFAULT_WIDTH_IN } from "../../slicer/defaults.ts";
+import { IMAGE_ADJUSTMENT_CONFIG } from "../../slicer/imageAdjustmentConfig.ts";
 import { theme } from "../../theme.ts";
 import PreviewPanel from "../PreviewPanel.tsx";
 import ExportActions from "../controls/ExportActions.tsx";
@@ -48,7 +49,7 @@ export default function MobileLayout({ slicer }: Props) {
       {show("saturation") && <MobileSliderControl pane="Image" id="saturation" label="Saturation" value={slicer.imageAdjustments.saturation} min={0} max={200} step={1} defaultValue={100} onChange={(v) => slicer.updateImageAdjustment("saturation", v)} focused={isFocused("saturation")} onFocus={focus} />}
       {show("gamma") && <MobileSliderControl pane="Image" id="gamma" label="Gamma" value={slicer.imageAdjustments.gamma} min={0.2} max={3} step={0.1} defaultValue={1} onChange={(v) => slicer.updateImageAdjustment("gamma", v)} focused={isFocused("gamma")} onFocus={focus} />}
       {show("shadow-lift") && <MobileSliderControl pane="Image" id="shadow-lift" label="Shadow Lift" value={slicer.imageAdjustments.shadowLift} min={0} max={100} step={1} defaultValue={0} onChange={(v) => slicer.updateImageAdjustment("shadowLift", v)} focused={isFocused("shadow-lift")} onFocus={focus} />}
-      {show("zoom") && <MobileSliderControl pane="Image" id="zoom" label="Zoom" value={slicer.imageZoom} min={100} max={200} step={0.1} defaultValue={100} onChange={slicer.setImageZoom} focused={isFocused("zoom")} onFocus={focus} />}
+      {show("zoom") && <MobileSliderControl pane="Image" id="zoom" label="Zoom" value={slicer.imageZoom} min={IMAGE_ADJUSTMENT_CONFIG.zoom.min} max={IMAGE_ADJUSTMENT_CONFIG.zoom.max} step={IMAGE_ADJUSTMENT_CONFIG.zoom.step} defaultValue={IMAGE_ADJUSTMENT_CONFIG.zoom.neutral} onChange={slicer.setImageZoom} focused={isFocused("zoom")} onFocus={focus} />}
       {show("image-x") && <MobileSliderControl pane="Image" id="image-x" label="Offset X" value={slicer.imageOffsetX} min={-100} max={100} step={0.1} defaultValue={0} onChange={slicer.setImageOffsetX} focused={isFocused("image-x")} onFocus={focus} />}
       {show("image-y") && <MobileSliderControl pane="Image" id="image-y" label="Offset Y" value={slicer.imageOffsetY} min={-100} max={100} step={0.1} defaultValue={0} onChange={slicer.setImageOffsetY} focused={isFocused("image-y")} onFocus={focus} />}
     </div>;
@@ -62,10 +63,10 @@ export default function MobileLayout({ slicer }: Props) {
       {show("grid-color") && <MobileSegmentedControl pane="Grid" id="grid-color" label="Color" value={slicer.gridColor} defaultValue="black" onChange={slicer.setGridColor} focused={isFocused("grid-color")} onFocus={focus} options={[
         { value: "black", title: "Black", content: <SvgIcon name="colorBlack" /> }, { value: "gray", title: "Gray", content: <SvgIcon name="colorGray" /> }, { value: "white", title: "White", content: <SvgIcon name="colorWhite" /> }, { value: "red", title: "Red", content: <SvgIcon name="colorRed" /> }, { value: "blue", title: "Blue", content: <SvgIcon name="colorBlue" /> },
       ]} />}
-      {show("iso") && <MobileSliderControl pane="Grid" id="iso" label="Iso Angle" value={slicer.gridPerspectiveAngle} min={0} max={45} step={2.5} defaultValue={0} onChange={slicer.setGridPerspectiveAngle} focused={isFocused("iso")} onFocus={focus} />}
+      {show("iso") && <MobileSliderControl pane="Grid" id="iso" label="Iso Skew" value={slicer.gridPerspectiveAngle} min={0} max={65} step={0.5} defaultValue={0} onChange={slicer.setGridPerspectiveAngle} focused={isFocused("iso")} onFocus={focus} />}
       {show("rotation") && <MobileSliderControl pane="Grid" id="rotation" label="Rotation" value={slicer.gridRotation} min={-90} max={90} step={0.5} defaultValue={0} onChange={slicer.setGridRotation} focused={isFocused("rotation")} onFocus={focus} />}
-      {show("grid-size") && <MobileSliderControl pane="Grid" id="grid-size" label="Size" value={slicer.gridSizeIn} min={0.5} max={1.5} step={0.01} defaultValue={DEFAULT_GRID_SIZE_IN} onChange={(v) => slicer.setGridSizeIn(v as GridSize)} focused={isFocused("grid-size")} onFocus={focus} />}
-      {show("stroke") && <MobileSliderControl pane="Grid" id="stroke" label="Stroke" value={slicer.gridLineThickness} min={1} max={5} step={0.1} defaultValue={1} onChange={slicer.setGridLineThickness} focused={isFocused("stroke")} onFocus={focus} />}
+      {show("grid-size") && <MobileSliderControl pane="Grid" id="grid-size" label="Size" value={slicer.gridSizeIn} min={0.5} max={2} step={0.01} defaultValue={DEFAULT_GRID_SIZE_IN} onChange={(v) => slicer.setGridSizeIn(v as GridSize)} focused={isFocused("grid-size")} onFocus={focus} />}
+      {show("stroke") && <MobileSliderControl pane="Grid" id="stroke" label="Stroke" value={slicer.gridLineThickness} min={1} max={10} step={0.1} defaultValue={1} onChange={slicer.setGridLineThickness} focused={isFocused("stroke")} onFocus={focus} />}
       {show("grid-x") && <MobileSliderControl pane="Grid" id="grid-x" label="X Offset" value={slicer.gridPhaseX} min={-1} max={1} step={0.01} defaultValue={0} onChange={slicer.setGridPhaseX} focused={isFocused("grid-x")} onFocus={focus} />}
       {show("grid-y") && <MobileSliderControl pane="Grid" id="grid-y" label="Y Offset" value={slicer.gridPhaseY} min={-1} max={1} step={0.01} defaultValue={0} onChange={slicer.setGridPhaseY} focused={isFocused("grid-y")} onFocus={focus} />}
     </div>;

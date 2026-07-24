@@ -1,6 +1,6 @@
 import type { GridColor, GridMode, GridSize } from "../../slicer/types.ts";
 import { buildGridPrimitives } from "../../slicer/gridPrimitives.ts";
-import { GRID_COLORS } from "../../slicer/gridConstants.ts";
+import { resolveGridColor } from "../../slicer/gridConstants.ts";
 
 type SvgGridLayerProps = {
     printedWidthIn: number;
@@ -27,7 +27,7 @@ function SvgGridLayer({
     gridPhaseY = 0,
     gridLineThickness=1,
 }: SvgGridLayerProps) {
-    const stroke = GRID_COLORS[gridColor] || "rgba(0,0,0,0.95)";
+    const stroke = resolveGridColor(gridColor);
 
     const strokeWidth = 0.03 * gridLineThickness;
 
@@ -40,6 +40,7 @@ function SvgGridLayer({
         gridSizeIn,
         gridPhaseX,
         gridPhaseY,
+        gridLineThickness,
         dashCount: 5,
     });
 
